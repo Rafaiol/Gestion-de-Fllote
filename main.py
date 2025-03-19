@@ -24,9 +24,9 @@ class MainPage(ctk.CTk):
         self.highlighted_rows = {}
         
         self.nav_buttons = {}
-        self.menu_icon = self.load_icon("Image_Assets/Menu.ico", size=(25, 25))
-        self.home_icon = self.load_icon("Image_Assets/home.ico", size=(25, 25))
-        self.history_icon = self.load_icon("Image_Assets/Activity History.ico", size=(25, 25))
+        self.menu_icon = self.load_icon("Image_Assets/Menu.png", size=(25, 25))
+        self.car_icon = self.load_icon("Image_Assets/front-car.png", size=(25, 25))
+        self.Interventions_icon = self.load_icon("Image_Assets/Interventions.png", size=(25, 25))
         self.update_icon = self.load_icon("Image_Assets/Update.ico", size=(25, 25))
         self.call_icon = self.load_icon("Image_Assets/Contact.ico", size=(25, 25))
         self.about_icon = self.load_icon("Image_Assets/About.ico", size=(25, 25))
@@ -34,16 +34,16 @@ class MainPage(ctk.CTk):
         self.notification_icon = self.load_icon("Image_Assets/notification.png", size=(20, 20))
         self.notification_click_icon = self.load_icon("Image_Assets/notification_clicked.png", size=(20, 20))
 
-        self.notification_frame = ctk.CTkFrame(self,height=35,fg_color="#333333")
+        self.notification_frame = ctk.CTkFrame(self,height=35,fg_color="#08090b")
         self.notification_frame.pack(side="top" ,fill="x")
         self.notification_frame.pack_propagate(False)  # Prevents the frame from expanding
         
         # Navigation Menu Frame
-        self.menu_frame = ctk.CTkFrame(self, width=150, corner_radius=0,fg_color="#333333")
+        self.menu_frame = ctk.CTkFrame(self, width=150, corner_radius=0,fg_color="#08090b")
         self.menu_frame.pack(side="left", fill="y")
 
         # Content Frame
-        self.content_frame = ctk.CTkFrame(self, corner_radius=10,fg_color="#202020")
+        self.content_frame = ctk.CTkFrame(self, corner_radius=10,fg_color="#050505")
         self.content_frame.pack(side="right", fill="both", expand=True)
         
        
@@ -54,14 +54,14 @@ class MainPage(ctk.CTk):
         
 
         # Add Navigation Buttons
-        self.add_nav_button("Home","Home", self.home_icon, self.show_home_page)
-        self.add_nav_button("History","History", self.history_icon, self.show_history_page)
+        self.add_nav_button("Véhicules","Véhicules", self.car_icon, self.show_véhicules_page)
+        self.add_nav_button("Interventions","Interventions", self.Interventions_icon, self.show_Interventions_page)
         self.add_nav_button("Update","Update", self.update_icon, self.show_update_page)
         self.add_nav_button("Contact","Contact", self.call_icon, self.show_call_page)
         self.add_nav_button("About","About", self.about_icon, self.show_about_page)
 
         # Default Page
-        self.show_home_page()
+        self.show_véhicules_page()
         
         self.notification_btn = ctk.CTkButton(
             self.notification_frame, image=self.notification_icon,text="" ,width=40, height=30, corner_radius=10,
@@ -74,7 +74,7 @@ class MainPage(ctk.CTk):
         
         # Set up periodic checking (every 60000 ms = 1 minute)
         self.after(30000, self.periodic_check)
-        self.set_active_button("home")
+        self.set_active_button("Véhicules")
     def periodic_check(self):
         """Check for notifications periodically"""
         self.check_notifications()
@@ -153,10 +153,25 @@ class MainPage(ctk.CTk):
 
         # Create a small popup window
         self.notification_popup = ctk.CTkToplevel(self)
-        self.notification_popup.geometry("400x300")  # Size of dropdown
+          
         self.notification_popup.overrideredirect(True)
-        self.notification_popup.configure(fg_color="#2C2F33")  # Dark background
+        self.notification_popup.attributes("-topmost", True)
+        self.notification_popup.fg_color = ("#2b2b2b", "#2b2b2b")
+        self.notification_popup.configure(corner_radius=15)   
         
+        window_width = 450  # Adjust to match your notification size
+        window_height = 600
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        
+        # Final position (right edge, centered vertically)
+        target_x = self.notification_btn.winfo_rootx()-435  # 20px from right edge
+        target_y = self.notification_btn.winfo_rooty() + self.notification_btn.winfo_height()-25  # Vertical center
+        
+        # Start position (fully off-screen right)
+        current_x = screen_width -85
+        current_y = target_y
+        fade_alpha = 0.0     
         
         def close_notification_popup():
          if hasattr(self, "notification_popup") and self.notification_popup.winfo_exists():
@@ -172,28 +187,29 @@ class MainPage(ctk.CTk):
                 close_notification_popup()
          except:
             pass
-        self.notification_popup.bind("<FocusOut>", lambda e: close_notification_popup())
+        self.notification_popup.bind("<FocusOut>", lambda e: fade_out())
         self.bind("<Button-1>", check_click_outside)
 
-        # Position it near the notification button
-        x = self.notification_btn.winfo_rootx()-400
-        y = self.notification_btn.winfo_rooty() + self.notification_btn.winfo_height()-25
-        self.notification_popup.geometry(f"+{x}+{y}")
+        
         
         self.notification_popup.focus_set()
         # Create a scrollable frame
-        frame = ctk.CTkFrame(self.notification_popup,fg_color="black"
+        frame = ctk.CTkFrame(self.notification_popup,fg_color="#333333",corner_radius=30
         )
         frame.pack(fill="both", expand=True, padx=5, pady=5)
 
         
 
         # Scrollable list of notifications
-        canvas = tk.Canvas(frame, bg="#2C2F33", highlightthickness=0, height=220)
-        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ctk.CTkFrame(canvas, fg_color="#2C2F33")
-
-        scrollable_frame.bind(
+        #canvas = tk.Canvas(frame, bg="#2C2F33", highlightthickness=0, height=220)
+        
+        
+        #scrollbar = ctk.CTkScrollbar(frame, orientation="vertical", command=canvas.yview)
+        scrollable_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        scrollable_frame.pack(side="left", fill="both", expand=True)
+        self.notification_popup.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
+        self.notification_popup.attributes("-alpha", 0.01)
+        '''scrollable_frame.bind(
             "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
@@ -202,7 +218,30 @@ class MainPage(ctk.CTk):
         canvas.configure(yscrollcommand=scrollbar.set)
 
         canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        scrollbar.pack(side="right", fill="y")'''
+        def slide_in():
+            nonlocal current_x, fade_alpha
+            if current_x > target_x:
+                current_x -= 30  # Animation speed
+                fade_alpha = min(fade_alpha + 0.05, 1.0)  # Fade in
+                self.notification_popup.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
+                self.notification_popup.attributes("-alpha", fade_alpha)
+                self.notification_popup.after(15, slide_in)
+            else:
+                self.notification_popup.attributes("-alpha", 1.0)
+
+        def fade_out():
+            def animate():
+                nonlocal current_x, fade_alpha
+                if fade_alpha > 0:
+                    current_x += 20  # Move right
+                    fade_alpha = max(fade_alpha - 0.05, 0)  # Fade out
+                    self.notification_popup.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
+                    self.notification_popup.attributes("-alpha", fade_alpha)
+                    self.notification_popup.after(20, animate)
+                else:
+                    self.notification_popup.destroy()
+            animate()
         
         def remove_notification(vehicule_id):
             """Remove notification from list and decrease count."""
@@ -221,9 +260,9 @@ class MainPage(ctk.CTk):
         for vehicule_id, text in self.notifications:
             notif_btn = ctk.CTkButton(
                 scrollable_frame, text=text, font=("poppins", 12),
-                fg_color="transparent", hover_color="#5B6EAE",
+                fg_color="transparent", hover_color="#555555",
                 corner_radius=5, command=lambda v=vehicule_id: [self.go_to_vehicle(v),remove_notification(v)],
-                anchor="w", width=220
+                anchor="w", width=220,height=50
             )
             notif_btn.pack(fill="x", pady=2, padx=5)
 
@@ -232,10 +271,24 @@ class MainPage(ctk.CTk):
         self.notification_popup.destroy(),
         self.unbind("<Button-1>")
          ])
+        def check_click(event):
+            x = event.x_root
+            y = event.y_root
+            win_x = self.notification_popup.winfo_x()
+            win_y = self.notification_popup.winfo_y()
+            win_width = self.notification_popup.winfo_width()
+            win_height = self.notification_popup.winfo_height()
+            
+            if not (win_x <= x <= win_x + win_width and
+                    win_y <= y <= win_y + win_height):
+                fade_out()
+
+        self.notification_popup.bind("<Button-1>", check_click)
+        slide_in()  # Start the animation
 
     def go_to_vehicle(self, vehicule_id):
             """Find, select, and highlight a vehicle in the Treeview."""
-            self.show_home_page()
+            self.show_véhicules_page()
             self.notification_popup.destroy()
             
             # Ensure VehiculesPage is loaded in the content frame
@@ -261,8 +314,8 @@ class MainPage(ctk.CTk):
                 self.highlighted_row = None
 
             # Ensure the Treeview has correct tag configurations
-            tree.tag_configure("highlighted", foreground="red",background="white", font=("Segoe UI", 10))  # Red highlight
-            tree.tag_configure("normalrow", foreground="black",background="white")  # Default color
+            tree.tag_configure("highlighted", foreground="#c80036",background="#333333", font=('poppins', 12,"bold"))  # Red highlight
+            tree.tag_configure("normalrow", foreground="#b3b3b3",background="#333333")  # Default color
             if not hasattr(self, "highlighted_rows"):
                 self.highlighted_rows = {}
 
@@ -330,7 +383,7 @@ class MainPage(ctk.CTk):
             compound="left",
             fg_color="transparent",
             text_color="white",
-            hover_color="#b30916",
+            hover_color="#534AE1",
             command=command,
             anchor="w",
             font=("Helvetica", 14, "bold"),
@@ -343,23 +396,23 @@ class MainPage(ctk.CTk):
             btn.configure(fg_color="transparent")
         # Set the active button's color
         if key in self.nav_buttons:
-            self.nav_buttons[key].configure(fg_color="#8a0d12") 
+            self.nav_buttons[key].configure(fg_color="#534AE1") 
     def clear_content_frame(self):
         """Clear all widgets from the content frame."""
         for widget in self.content_frame.winfo_children():
             widget.destroy()
-    def show_home_page(self):
+    def show_véhicules_page(self):
           self.clear_content_frame()
-          vehicules_page=VehiculesPage(master=self.content_frame,main_app=self)
+          vehicules_page=VehiculesPage(master=self.content_frame,main_app=self,fg_color="#050505")
           vehicules_page.pack(fill="both",expand=True)
-          self.set_active_button("Home")
+          self.set_active_button("Véhicules")
           
           
-    def show_history_page(self):
+    def show_Interventions_page(self):
         self.clear_content_frame()
-        glaciol_frame = GlaciolPage(master=self.content_frame)
+        glaciol_frame = GlaciolPage(master=self.content_frame,fg_color="#050505")
         glaciol_frame.page_frame.pack(fill="both", expand=True)
-        self.set_active_button("History")
+        self.set_active_button("Interventions")
         
 
     def show_update_page(self):

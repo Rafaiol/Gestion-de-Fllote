@@ -79,7 +79,7 @@ class MainPage(ctk.CTkFrame):
             main_frame.grid_rowconfigure(4, weight=1)
 
             # Fields and entries
-            fields = ["Marque:", "Type:", "Immatriculation:","Service Utilisateur:" , 
+            fields = ["Marque:", "Type:", "Immatriculation:","Service Utilisateur:" , "Anne"
                     "Date Assurance:", "Carburant:","Date Control Technique :" , "Conducteur:"]
             entries = []
 
@@ -117,7 +117,7 @@ class MainPage(ctk.CTkFrame):
                     messagebox.showerror("Error", "Please fill all fields")
                     return
 
-                query = f"INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur], [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                query = f"INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur],Anne, [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
@@ -187,10 +187,7 @@ class MainPage(ctk.CTkFrame):
             for i, row in enumerate(data):
                 tag = 'evenrow' if i % 2 == 0 else 'oddrow'
                 tree.insert('', 'end', values=[str(item) for item in row], tags=(tag,))
-            # Add striped row colors
-            tree.tag_configure('oddrow', background="#f0f0f0")
-            tree.tag_configure('evenrow', background="white")
-
+            
 
             cursor.close()
             connection.close()
@@ -235,10 +232,8 @@ class MainPage(ctk.CTkFrame):
                         db_field = field_mapping[field]
                         query = f'''SELECT v.vehicule_id, v.marque, v.type, v.Immatriculation, 
                     v.service_utilisateur, v.date_assurance, v.carburant, 
-                    v.date_control_technique, 
-                    CONCAT(c.nom , ' ' , c.prenom) as conducteur_name
-                FROM véhicule v
-                LEFT JOIN conducteurs c ON v.conducteur = c.id_conducteur WHERE {db_field} LIKE ?'''
+                    v.date_control_technique,v.conducteur
+                FROM Vehicule v WHERE {db_field} LIKE ?'''
                         fetch_data(tree, query, (f"%{value}%",))
                         top.destroy()
         
@@ -275,10 +270,8 @@ class MainPage(ctk.CTkFrame):
                 value = entry.get()
                 query = f'''SELECT v.vehicule_id, v.marque, v.type, v.Immatriculation, 
                     v.service_utilisateur, v.date_assurance, v.carburant, 
-                    v.date_control_technique, 
-                    CONCAT(c.nom , ' ' , c.prenom) as conducteur_name
-                FROM véhicule v
-                LEFT JOIN conducteurs c ON v.conducteur = c.id_conducteur WHERE {db_field} LIKE ?'''
+                    v.date_control_technique,v.conducteur
+                FROM Vehicule v WHERE {db_field} LIKE ?'''
                 fetch_data(tree, query, (f"%{value}%",))
             entry = ctk.CTkEntry(filt)
             entry.grid(row=0, column=0, pady=10,sticky="ew",ipadx=150)
@@ -301,10 +294,8 @@ class MainPage(ctk.CTkFrame):
             query = """
                 SELECT v.vehicule_id, v.marque, v.type, v.Immatriculation, 
                     v.service_utilisateur, v.date_assurance, v.carburant, 
-                    v.date_control_technique, 
-                    CONCAT(c.nom , ' ' , c.prenom) as conducteur_name
-                FROM véhicule v
-                LEFT JOIN conducteurs c ON v.conducteur = c.id_conducteur
+                    v.date_control_technique,v.conducteur
+                FROM Vehicule v
                 """
             fetch_data(tree, query)
             if hasattr(self, "main_app") and self.main_app is not None:
@@ -377,7 +368,7 @@ class MainPage(ctk.CTkFrame):
             messagebox.showwarning("Warning", "Please fill all fields")
             return
 
-         query = f"UPDATE {tab} SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,[date_assurance] = ?, carburant = ?,[date_control_technique] = ?, conducteur = ? WHERE vehicule_id = ?"
+         query = f"UPDATE {tab} SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,Anne = ?,[date_assurance] = ?, carburant = ?,[date_control_technique] = ?, conducteur = ? WHERE vehicule_id = ?"
          try:
             connection = get_connection()
             cursor = connection.cursor()
@@ -416,7 +407,7 @@ class MainPage(ctk.CTkFrame):
          main_frame.grid_rowconfigure(4, weight=1)
 
         # Fields and entries
-         fields = ["Marque:", "Type:", "Immatriculation:", "Service Utilisateur:", 
+         fields = ["Marque:", "Type:", "Immatriculation:", "Service Utilisateur:","Anne" 
                 "Date d'Assurance:", "Carburant:", "Date Controle technique:", "Conducteur:"]
          entries = []
 
@@ -481,19 +472,19 @@ class MainPage(ctk.CTkFrame):
         tab = "véhicule"
         # Style
         style = ttk.Style()
-        
-        style.configure("Treeview", background="#333333", foreground="#333333",rowhight=25, fieldbackground="#333333",bordercolor="#333333",
-        borderwidth=0,
-        font=('Segoe UI', 10))
-        style.configure("Treeview.Heading",  background="#333333", foreground="#333333",relief="flat",
-    font=('Segoe UI', 11, 'bold'),
+        style.theme_use("classic")
+        style.configure("Custom.Treeview", background="#333333", foreground="#b3b3b3",rowheight=50, fieldbackground="#333333",
+        borderwidth=0,relief="flat",
+        font=('poppins', 12))
+        style.configure("Custom.Treeview.Heading",  background="#242424",rowheight=50, foreground="#cccccc",relief="flat",
+    font=('poppins', 14, 'bold'),borderwidth=0,
     padding=5)
         
         
         # Add alternating row colors
-        style.map("Treeview", 
-        background=[('selected', '#4a90d9')],  # Blue background when selected
-        foreground=[('selected', 'white')])        
+        style.map("Custom.Treeview", 
+        background=[('selected', '#555555')],  # Blue background when selected
+        foreground=[('selected', '#cccccc')])        
 # Add this updated style configuration before creating the Treeview
 
     
@@ -501,12 +492,13 @@ class MainPage(ctk.CTkFrame):
 # Hover and selection effects
         
 
-        style.map("Treeview.Heading",
-    background=[('active', '#e6e6e6')],
+        style.map("Custom.Treeview.Heading",
+    background=[('active', '#333333')],
     relief=[('pressed', 'groove'), ('!pressed', 'groove')]
     )
 
-
+        
+ 
 
 # Modern scrollbar styling
         style.configure("Treeview.Scrollbar",
@@ -514,16 +506,17 @@ class MainPage(ctk.CTkFrame):
     background="#c1c1c1",
     borderwidth=0,
     relief="flat"
-)
+    )
 
 
 # Then modify your Treeview creation to use the custom style:
         
         self.tree = ttk.Treeview(
     self.page_frame,
-    columns=("col1", "col2", "col3", "col4", "col5", "col6", "col7", "col8", "col9"),
-    show='headings',
-    style="Treeview"
+    columns=("col1", "col2", "col3", "col4", "col5"),
+    show='headings',style="Custom.Treeview",
+    takefocus=0
+    
     )
         sort_direction = {
         "col1": None,
@@ -531,10 +524,7 @@ class MainPage(ctk.CTkFrame):
         "col3": None,
         "col4": None,
         "col5": None,
-        "col6": None,
-        "col7": None,
-        "col8": None,
-        "col9": None
+        
     }   
         column_headings = {
     "col1": "Vehicle ID",
@@ -542,10 +532,6 @@ class MainPage(ctk.CTkFrame):
     "col3": "Type", 
     "col4": "Immatriculation",
     "col5": "Service Utilisateur",
-    "col6": "Date d'assurance",
-    "col7": "Carburant",
-    "col8": "Date Controle Technique",
-    "col9": "Conducteur Name"
     }
         ord_column_headings = {
     "col1": "vehicule_id",
@@ -553,10 +539,6 @@ class MainPage(ctk.CTkFrame):
     "col3": "Type", 
     "col4": "Immatriculation",
     "col5": "Service_Utilisateur",
-    "col6": "date_assurance",
-    "col7": "Carburant",
-    "col8": "date_control_technique",
-    "col9": "Conducteur_name"
     }
         
         
@@ -573,48 +555,36 @@ class MainPage(ctk.CTkFrame):
     
     # Construct and execute SQL query with ORDER BY
             query = f"""
-            SELECT v.vehicule_id, v.marque, v.type, v.Immatriculation, 
-                    v.service_utilisateur, v.date_assurance, v.carburant, 
-                    v.date_control_technique, 
-                    CONCAT(c.nom , ' ' , c.prenom) as conducteur_name
-                FROM véhicule v
-                LEFT JOIN conducteurs c ON v.conducteur = c.id_conducteur
-            ORDER BY {field} {sort_direction[col]}"""
+            SELECT SELECT v.vehicule_id, v.marque, v.type, v.Immatriculation, 
+                    v.service_utilisateur
+                FROM Vehicule v ORDER BY {field} {sort_direction[col]}"""
             fetch_data(tree, query)
     
 # Set column headings and properties
         for col, heading in column_headings.items():
-            self.tree.heading(col, text=heading, anchor=tk.CENTER,command=lambda c=col: treeview_sort_column(self.tree, c, tab))
+            self.tree.heading(col, text=heading, anchor=tk.W,command=lambda c=col: treeview_sort_column(self.tree, c, tab))
             self.tree.column(col, anchor=tk.W, width=150, minwidth=100)
 
-        style.configure("Vertical.TScrollbar",
-    background="#c1c1c1",
-    troughcolor="#f0f0f0",
-    width=16,
-    )
+      
+    
 
 # Configure horizontal scrollbar style
-        style.configure("Horizontal.TScrollbar",
-    background="#c1c1c1", 
-    troughcolor="#f0f0f0",
-    width=16,
     
-    )
 # Add these lines for alternating row colors
-        self.tree.tag_configure('oddrow', background='white',foreground='black')
-        self.tree.tag_configure('evenrow', background='white',foreground='black')
+        self.tree.tag_configure('oddrow', background='#333333')
+        self.tree.tag_configure('evenrow', background='#333333')
+        
 
-
-        v_scrollbar = ttk.Scrollbar(
+        v_scrollbar = ctk.CTkScrollbar(
     self.page_frame,
-    orient="vertical",
+    orientation="vertical",
     command=self.tree.yview,
     
     )
 
-        h_scrollbar = ttk.Scrollbar(
+        h_scrollbar = ctk.CTkScrollbar(
     self.page_frame,
-    orient="horizontal",
+    orientation="horizontal",
     command=self.tree.xview,
     
     )
@@ -625,14 +595,14 @@ class MainPage(ctk.CTkFrame):
 
 # Grid layout for scrollbars
         self.tree.grid(row=1, column=0, columnspan=8, padx=(20,3), pady=5, sticky="nsew")
-        v_scrollbar.grid(row=1, column=8, sticky="ns", pady=10)
-        h_scrollbar.grid(row=2, column=0, columnspan=8, sticky="ew", padx=20)
+        v_scrollbar.grid(row=1, column=8, sticky="ns", pady=(0,10))
+        h_scrollbar.grid(row=2, column=0, columnspan=8, sticky="ew", padx=(20,0))
 
         # Fetch initial data
         fetch_all_data(self.tree, tab)
         
          
-        self.add_button = ctk.CTkButton(self.buttons_frame,hover_color="#6a097d",corner_radius=10,width=5,height=25,text="",image=self.add_icon,fg_color="transparent",command=lambda: start_add_mode(self.tree, tab, self.add_button))
+        self.add_button = ctk.CTkButton(self.buttons_frame,hover_color="#555555",corner_radius=5,width=25,height=25,text="",image=self.add_icon,fg_color="transparent",border_width=0,command=lambda: start_add_mode(self.tree, tab, self.add_button))
         self.add_button.grid(row=0, column=0, padx=10, pady=10,sticky="w")
         
         self.search_button = ctk.CTkButton(self.buttons_frame, hover_color="#6a097d",width=25,height=25,text="",fg_color="transparent",image=self.search_icon,compound="left", command=lambda: fetch_by_field(self.tree, tab))
