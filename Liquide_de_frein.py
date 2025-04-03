@@ -118,7 +118,7 @@ class MainPage(ctk.CTkFrame):
             # Get vehicle data
             
             # Fields and entries
-            fields = [ "Type:","Marque", "Immatriculation", "Date de Glaciol", "Litre" ,"Num Facture","Nom Fournisseur","Technicien"]
+            fields = [ "Type:","Marque", "Immatriculation", "Date de Changement", "Litre" ,"Num Facture","Nom Fournisseur","Technicien"]
             entries = []
             vehicle_names, vehicle_data = get_vehicles()
             
@@ -174,11 +174,11 @@ class MainPage(ctk.CTkFrame):
                 
                 values = [vehicule_id,entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip()]
                 
-                if any(value == '' for value in [values[1], values[2]]):
+                if any(value == '' for value in values):
                     messagebox.showerror("Error", "Please fill all fields")
                     return
                 
-                query = "INSERT INTO Glaciol (vehicule_id,date_glac, litre,Num_facture,nom_fournisseur,Technicien) VALUES (?, ?, ?, ?, ?, ?)"
+                query = "INSERT INTO Liquide_de_frin (vehicule_id,date_liquide, litre,Num_facture,nom_fournisseur,Technicien) VALUES (?, ?, ?, ?, ?, ?)"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
@@ -275,15 +275,15 @@ class MainPage(ctk.CTkFrame):
                 
             
             value = self.search_entry.get()
-            query = f'''SELECT  g.num_glaciol,v.marque, v.type, v.Immatriculation,g.date_glac,g.litre  
+            query = f'''SELECT  L.num_liquide,v.marque, v.type, v.Immatriculation,L.date_liquide,L.litre  
                     FROM Vehicule v
-                    INNER JOIN glaciol g ON v.vehicule_id = g.vehicule_id WHERE 
-                    g.num_glaciol LIKE ? OR 
+                    INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id WHERE 
+                    L.num_liquide LIKE ? OR 
                     v.marque LIKE ? OR 
                     v.type LIKE ? OR 
                     v.Immatriculation LIKE ? OR 
-                    g.date_glac LIKE ? OR 
-                    g.litre LIKE ?'''
+                    L.date_liquide LIKE ? OR 
+                    L.litre LIKE ?'''
             params = (f"%{value}%",) * 6 
             fetch_data(tree, query, params)
             
@@ -297,9 +297,9 @@ class MainPage(ctk.CTkFrame):
                 print("Please enter a table name.")
                 return
             query = """
-                SELECT  g.num_glaciol, v.marque, v.type, v.Immatriculation,g.date_glac,g.litre  
+                SELECT  L.num_liquide, v.marque, v.type, v.Immatriculation,L.date_liquide,L.litre  
                         FROM Vehicule v
-                        INNER JOIN glaciol g ON v.vehicule_id = g.vehicule_id
+                        INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id
                 """
             fetch_data(tree, query)
 
@@ -321,7 +321,7 @@ class MainPage(ctk.CTkFrame):
                 current_values = tree.item(row_id)['values']
                 
                 record_id = current_values[0]  # Assuming first column is ID
-                cursor.execute(f"DELETE FROM {tab} WHERE num_glaciol = ?", (record_id,))
+                cursor.execute(f"DELETE FROM {tab} WHERE num_liquide = ?", (record_id,))
                 
                 # Remove associated button frame
                 if record_id in self.existing_button_frames:
@@ -352,7 +352,7 @@ class MainPage(ctk.CTkFrame):
                 messagebox.showwarning("Warning", "Please fill all fields")
                 return
 
-            query = f"UPDATE {tab} SET  date_glac = ?, litre = ?,Num_facture = ?,nom_fournisseur = ?,Technicien = ? WHERE num_glaciol = ?"
+            query = f"UPDATE {tab} SET  date_liquide = ?, litre = ?,Num_facture = ?,nom_fournisseur = ?,Technicien = ? WHERE num_liquide = ?"
             try:
                 connection = get_connection()
                 cursor = connection.cursor()
@@ -372,11 +372,11 @@ class MainPage(ctk.CTkFrame):
             current_values = tree.item(row_id)['values']
             glac_num = current_values[0]
             # Fetch complete data using existing pattern
-            query = """SELECT v.marque, v.type, v.Immatriculation, g.date_glac, g.litre, 
-                            g.Num_facture, g.nom_fournisseur,g.Technicien
-                    FROM Glaciol g
-                    INNER JOIN Vehicule v ON g.vehicule_id = v.vehicule_id
-                    WHERE g.num_glaciol = ?"""
+            query = """SELECT v.marque, v.type, v.Immatriculation, L.date_liquide, L.litre, 
+                            L.Num_facture, L.nom_fournisseur,L.Technicien
+                    FROM Liquide_de_frin L
+                    INNER JOIN Vehicule v ON L.vehicule_id = v.vehicule_id
+                    WHERE L.num_liquide = ?"""
             
             try:
                 connection = get_connection()
@@ -408,7 +408,7 @@ class MainPage(ctk.CTkFrame):
             main_frame.grid_rowconfigure(4, weight=1)
 
             # Fields and entries
-            fields = ["Marque", "Type", "Immatriculation", "Date Glaciol", "Litre","Num Facture","Nom Fournisseur","Technicien"]
+            fields = ["Marque", "Type", "Immatriculation", "Date de Changement", "Litre","Num Facture","Nom Fournisseur","Technicien"]
             entries = []
 
             # Create entries with improved layout
@@ -482,11 +482,11 @@ class MainPage(ctk.CTkFrame):
                 connection = get_connection()
                 cursor = connection.cursor()
                 cursor.execute("""
-                    SELECT g.num_glaciol, v.marque, v.type, v.Immatriculation, 
-                        g.date_glac, g.litre, g.Num_facture, g.nom_fournisseur,g.Technicien
-                    FROM Glaciol g
-                    INNER JOIN Vehicule v ON g.vehicule_id = v.vehicule_id
-                    WHERE g.num_glaciol = ?
+                    SELECT L.num_liquide,v.marque, v.type, v.Immatriculation, L.date_liquide, L.litre, 
+                            L.Num_facture, L.nom_fournisseur,L.Technicien
+                    FROM Liquide_de_frin L
+                    INNER JOIN Vehicule v ON L.vehicule_id = v.vehicule_id
+                    WHERE L.num_liquide = ?
                 """, (glac_num,))
                 full_data = cursor.fetchone()
             except pyodbc.Error as e:
@@ -552,7 +552,7 @@ class MainPage(ctk.CTkFrame):
                         ("Marque", full_data[1]),
                         ("Type", full_data[2]),
                         ("Immatriculation", full_data[3]),
-                        ("Date Glaciol", full_data[4]),
+                        ("Date de Changement", full_data[4]),
                         ("Litre", full_data[5]),
                         ("Num Facture", full_data[6]),  # New field
                         ("Nom Fournisseur", full_data[7]),
@@ -662,25 +662,25 @@ class MainPage(ctk.CTkFrame):
 
 
             # Collect all visible num_glaciol IDs from the Treeview
-            num_glaciol_list = []
+            num_Liquide_list = []
             for item in tree.get_children():
                 row_values = tree.item(item)['values']
                 if row_values:
-                    num_glaciol_list.append(row_values[0])  # Assuming col1 is num_glaciol (primary key)
+                    num_Liquide_list.append(row_values[0])  # Assuming col1 is num_glaciol (primary key)
 
-            if not num_glaciol_list:
+            if not num_Liquide_list:
                 messagebox.showwarning("No Data", "No data to export!")
                 return
-            print(num_glaciol_list)
+            
             # Prepare SQL query to fetch full data of only visible rows
-            id_list = ','.join(str(glac_id) for glac_id in num_glaciol_list)
+            id_list = ','.join(str(Liquide_id) for Liquide_id in num_Liquide_list)
             print(id_list)
             query = f"""
-                SELECT g.num_glaciol AS [Numéro], v.marque AS [Marque], v.type AS [Type], v.Immatriculation AS [Immatriculation], 
-                    g.date_glac AS [Date de Glaciol], g.litre AS [Litre], g.Num_facture AS [Num Facture], g.nom_fournisseur AS [Nom Fournisseur],g.Technicien AS [Technicien]
+                SELECT L.num_liquide AS [N°], v.marque AS [Marque], v.type AS [Type], v.Immatriculation AS [Immatriculation], 
+                    L.date_liquide AS [Date de Changement], L.litre AS [Litre], L.Num_facture AS [Num Facture], L.nom_fournisseur AS [Nom Fournisseur],L.Technicien AS [Technicien]
                 FROM Vehicule v
-                INNER JOIN glaciol g ON v.vehicule_id = g.vehicule_id
-                WHERE g.num_glaciol IN ({id_list})
+                INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id
+                WHERE L.num_liquide IN ({id_list})
             """
 
             try:
@@ -695,8 +695,8 @@ class MainPage(ctk.CTkFrame):
                 ws.title = "Glaciol Export"
 
                 # Write headers (as in inspect window / database)
-                headers = ["Numéro", "Marque", "Type", "Immatriculation", 
-                        "Date de Glaciol", "Litre", "Num Facture", "Nom Fournisseur","Technicien"]
+                headers = ["N°", "Marque", "Type", "Immatriculation", 
+                        "Date de Changement", "Litre", "Num Facture", "Nom Fournisseur","Technicien"]
                 ws.append(headers)
 
                 # Write data rows manually
@@ -720,7 +720,7 @@ class MainPage(ctk.CTkFrame):
                     adjusted_width = (max_length + 2)
                     ws.column_dimensions[get_column_letter(col_num)].width = adjusted_width
                 # Save the workbook
-                file_path = os.path.abspath("Glaciol_Export.xlsx")
+                file_path = os.path.abspath("Liquide_de_frin__Export.xlsx")
                 wb.save(file_path)
 
                 messagebox.showinfo("Export Successful", f"Data exported to {file_path}")
@@ -736,7 +736,7 @@ class MainPage(ctk.CTkFrame):
                     connection.close()
 
             
-        tab = "Glaciol"
+        tab = "Liquide_de_frin"
         # Style
         style = ttk.Style()
         #style.theme_use("classic")
@@ -768,12 +768,7 @@ class MainPage(ctk.CTkFrame):
 
 
 # Modern scrollbar styling
-        style.configure("Treeview.Scrollbar",
-    troughcolor="#f0f0f0",
-    background="#c1c1c1",
-    borderwidth=0,
-    relief="flat"
-)
+        
 
 
 # Then modify your Treeview creation to use the custom style:
@@ -799,17 +794,17 @@ class MainPage(ctk.CTkFrame):
     "col2": "Marque",
     "col3": "Type", 
     "col4": "Immatriculation",
-    "col5": "Date de Glaciol",
+    "col5": "Date de Changement",
     "col6": "Litre",
         
     }
         ord_column_headings = {
-    "col1": "num_glaciol",
+    "col1": "num_liquide",
     "col2": "Marque",
     "col3": "Type", 
     "col4": "Immatriculation",
-    "col5": "date_glac",
-    "col6": "litre",
+    "col5": "date_liquide",
+    "col6": "Litre",
     }
     
         def treeview_sort_column(tree, col, tab):
@@ -824,9 +819,9 @@ class MainPage(ctk.CTkFrame):
     
     # Construct and execute SQL query with ORDER BY
             query = f"""
-            SELECT g.num_glaciol, v.marque, v.type, v.Immatriculation,g.date_glac,g.litre  
+            SELECT L.num_liquide, v.marque, v.type, v.Immatriculation,L.date_liquide,L.litre  
                         FROM Vehicule v
-                        INNER JOIN glaciol g ON v.vehicule_id = g.vehicule_id
+                        INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id
             ORDER BY {field} {sort_direction[col]}"""
             fetch_data(tree, query)
     
@@ -895,9 +890,3 @@ class MainPage(ctk.CTkFrame):
 
 
 
-'''
-
-if __name__ == "__main__":
-    app = MainPage()
-
-    app.mainloop()'''

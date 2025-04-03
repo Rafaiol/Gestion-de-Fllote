@@ -1,13 +1,14 @@
 import customtkinter as ctk
+from PIL import Image, ImageTk
 from tkinter import messagebox
 import pyodbc
 import bcrypt
 from typing import Optional
 import re
 import logging
-from datetime import datetime
 import json
-import tkinter as tk  # Import tkinter for styling messagebox
+import tkinter as tk
+from tkinter import BOTH# Import tkinter for styling messagebox
 
 
 class CustomMessageBox:  # Keep this class for consistent styling
@@ -67,29 +68,12 @@ class DatabaseManager:
         
         try:
             self.connection = pyodbc.connect(connection_string)
-            self._create_tables()
+            
         except pyodbc.Error as e:
             self.logger.error(f"Database connection error: {str(e)}")
             raise
 
-    def _create_tables(self) -> None:
-        create_users_table = """
-        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'users')
-        CREATE TABLE users (
-            id INT IDENTITY(1,1) PRIMARY KEY,
-            username VARCHAR(25) UNIQUE NOT NULL,
-            password_v VARCHAR(8) NOT NULL,
-            created_at DATETIME DEFAULT GETDATE(),
-            last_login DATETIME
-        )
-        """
-        try:
-            with self.connection.cursor() as cursor:
-                cursor.execute(create_users_table)
-                self.connection.commit()
-        except pyodbc.Error as e:
-            self.logger.error(f"Error creating tables: {str(e)}")
-            raise
+    
 
 class LoginForm(ctk.CTk):
     def __init__(self):
@@ -98,69 +82,77 @@ class LoginForm(ctk.CTk):
         # Configure window and theme
         self.title("Modern Login")
         self.geometry("400x600")
+        #self.overrideredirect(1)
+        self.wm_attributes("-transparentcolor", "grey")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
+        
+        
         
         # Initialize database
         self.db = DatabaseManager()
         
         self._create_widgets()
         self._create_layout()
-
+        self.background = self.load_icon("Image_Assets/background.jpg", size=(400, 600))
+        frame_label = ctk.CTkLabel(self,bg_color='grey',text='',image=self.background)
+        frame_label.pack(fill=BOTH,expand=True)
+        
+    def load_icon(self, path, size):
+            """Load and resize an icon."""
+            img = Image.open(path)
+            img_resized = img.resize(size, Image.Resampling.LANCZOS)
+            return ctk.CTkImage(img_resized, size=size)
     def _create_widgets(self):
         # Main frame
-        self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
-        
+        #self.main_frame = ctk.CTkFrame(self, fg_color="transparent",bg_color="transparent",corner_radius =30)
+        self.main_frame = ctk.CTkLabel(self, fg_color="transparent", text="", bg_color="transparent")
+
         # Welcome text
         self.welcome_label = ctk.CTkLabel(
             self.main_frame,
-            text="Welcome Back",
-            font=("Host grotesk", 32, "bold"),
-            text_color="white"
+            text="Bienvenue",
+            font=("Host grotesk", 40, "bold"),
+            text_color="white",fg_color="transparent"
         )
         
-        self.subtitle_label = ctk.CTkLabel(
-            self.main_frame,
-            text="Sign in to continue",
-            font=("Helvetica", 12),
-            text_color="gray"
-        )
+        
         self.email_label = ctk.CTkLabel(
            self.main_frame,
-           text="Email :",
+           text="Nom Utilisateur :",
            font=("poppins", 17),
-           anchor="w" 
+           anchor="w",fg_color="transparent"
         )
 
         # Email entry
         self.username_entry = ctk.CTkEntry(
             self.main_frame,
-            placeholder_text="Email",
+            placeholder_text="Nom Utilisateur",
             font=("poppins", 12),
             width=300,
             height=50,
             border_width=2,
-            corner_radius=10
+            corner_radius=10,fg_color="transparent"
         )
         self.username_entry.bind('<FocusIn>', lambda e: self.username_entry.configure(border_color="#561B8D"))
         self.username_entry.bind('<FocusOut>', lambda e: self.username_entry.configure(border_color=""))
         
         self.password_label = ctk.CTkLabel(
         self.main_frame,
-        text="Password :",
+        text="Mot de passe :",
         font=("poppins", 17),
-        anchor="w"
+        anchor="w",fg_color="transparent"
         )
         # Password entry
         self.password_entry = ctk.CTkEntry(
             self.main_frame,
-            placeholder_text="Password",
+            placeholder_text="Mot de passe",
             font=("poppins", 12),
             width=300,
             height=50,
             border_width=2,
             corner_radius=10,
-            show="•"
+            show="•",fg_color="transparent"
         )
         self.password_entry.bind('<FocusIn>', lambda e: self.password_entry.configure(border_color="#561B8D"))
         self.password_entry.bind('<FocusOut>', lambda e: self.password_entry.configure(border_color=""))
@@ -174,41 +166,25 @@ class LoginForm(ctk.CTk):
             corner_radius=6
         )
 
-        # Forgot password button
-        self.forgot_button = ctk.CTkButton(
-            self.main_frame,
-            text="Forgot Password?",
-            font=("Helvetica", 12),
-            fg_color="transparent",
-            hover_color=("gray70", "gray30"),
-            command=self._on_forgot_password
-        )
+       
 
         # Login button
         self.login_button = ctk.CTkButton(
             self.main_frame,
-            text="Sign In",
-            font=("Helvetica", 14, "bold"),
+            text="Entrer",
+            font=("poppins", 18, "bold"),
             width=300,
             height=50,
             corner_radius=10,
-            command=self._on_login
+            command=self._on_login,fg_color="transparent"
         )
 
-        # Sign up button
-        self.signup_button = ctk.CTkButton(
-            self.main_frame,
-            text="Don't have an account? Sign Up",
-            font=("Helvetica", 12),
-            fg_color="transparent",
-            hover_color=("gray70", "gray30"),
-            command=self._on_signup
-        )
+        
         # Show password checkbox
         self.show_password_var = ctk.BooleanVar()
         self.show_password_check = ctk.CTkCheckBox(
           self.main_frame,
-          text="Show password",
+          text="Voir le mot de passe",
           variable=self.show_password_var,
           font=("Helvetica", 12),
           corner_radius=6,
@@ -216,11 +192,10 @@ class LoginForm(ctk.CTk):
 
     def _create_layout(self):
         # Place main frame
-        self.main_frame.pack(expand=True, padx=40, pady=40)
+        self.main_frame.pack(expand=True, padx=40, pady=40 )
         
         # Layout widgets with proper spacing
-        self.welcome_label.pack(pady=(0, 5), anchor="w")
-        self.subtitle_label.pack(pady=(0, 30), anchor="w")
+        self.welcome_label.pack(pady=(0, 30), anchor="w")
         self.email_label.pack(pady=(0, 5), anchor="w")
         self.username_entry.pack(pady=(0, 20))
         self.password_label.pack(pady=(0, 5), anchor="w")
@@ -232,10 +207,10 @@ class LoginForm(ctk.CTk):
         options_frame.pack(fill="x", pady=(0, 30))
         
         self.remember_check.pack(side="left", in_=options_frame)
-        self.forgot_button.pack(side="right", in_=options_frame)
+      
         
         self.login_button.pack(pady=(0, 20))
-        self.signup_button.pack()
+        #self.signup_button.pack()
         
         
     def _on_login(self):
@@ -252,7 +227,7 @@ class LoginForm(ctk.CTk):
             user_exists = cursor.fetchone()[0]
             
             if not user_exists:
-                CustomMessageBox.show_error("Login Failed", "User does not exist.")
+                CustomMessageBox.show_error("Login Failed", "L'utilisateur n'existe pas.")
                 self.username_entry.configure(border_color="red")
                 return
 
@@ -263,7 +238,7 @@ class LoginForm(ctk.CTk):
             if stored_password == password:
                 self._handle_successful_login(user)
             else:
-                CustomMessageBox.show_error("Login Failed", "Incorrect password.")
+                CustomMessageBox.show_error("Login Failed", "Mot de passe incorrect.")
                 self.password_entry.configure(border_color="red")
 
         except pyodbc.Error as e:
@@ -273,13 +248,13 @@ class LoginForm(ctk.CTk):
         user_pattern =  r'^[a-zA-Z]+$' 
 
         if not re.match(user_pattern, user):
-            CustomMessageBox.show_error("Invalid user", "Username must contain only letters.")
+            CustomMessageBox.show_error("Invalid user", "Le nom d'utilisateur doit contenir uniquement des lettres.")
             self.username_entry.configure(border_color="red")
             return False
         else:
             self._clear_entry_error(self.username_entry)
-        if len(password) < 8:
-            CustomMessageBox.show_error("Invalid Password", "Password must be at least 8 characters long.")
+        if len(password) < 8 or len(password) > 16 :
+            CustomMessageBox.show_error("Invalid Password", "Le mot de passe doit comporter entre 8 et 16 caractères.")
             self.password_entry.configure(border_color="red")
             return False
         else:
@@ -310,11 +285,7 @@ class LoginForm(ctk.CTk):
         # Show error message to user
         pass
 
-    def _on_signup(self):
-        messagebox.showinfo("Sign Up", "Sign up functionality coming soon!")
 
-    def _on_forgot_password(self):
-        messagebox.showinfo("Forgot Password", "Password recovery coming soon!")
     
     def _toggle_password_visibility(self):
         if self.show_password_var.get():
@@ -338,39 +309,3 @@ if __name__ == "__main__":
 
 
 
-# Add these imports at the top
-from tkinter import messagebox
-import tkinter as tk
-
-# Add this new class after the DatabaseManager class
-class CustomMessageBox:
-    @staticmethod
-    def show_error(title, message):
-        root = tk.Tk()
-        root.withdraw()
-        
-        # Style the messagebox
-        root.option_add('*Dialog.msg.font', 'Helvetica 11')
-        root.option_add('*Dialog.msg.background', '#2b2b2b')
-        root.option_add('*Dialog.msg.foreground', 'white')
-        root.option_add('*Dialog.Button.font', 'Helvetica 10 bold')
-        root.option_add('*Dialog.Button.background', '#1f538d')
-        root.option_add('*Dialog.Button.foreground', 'white')
-        
-        messagebox.showerror(title, message)
-        root.destroy()
-
-    @staticmethod
-    def show_info(title, message):
-        root = tk.Tk()
-        root.withdraw()
-        
-        root.option_add('*Dialog.msg.font', 'Helvetica 11')
-        root.option_add('*Dialog.msg.background', '#2b2b2b')
-        root.option_add('*Dialog.msg.foreground', 'white')
-        root.option_add('*Dialog.Button.font', 'Helvetica 10 bold')
-        root.option_add('*Dialog.Button.background', '#1f538d')
-        root.option_add('*Dialog.Button.foreground', 'white')
-        
-        messagebox.showinfo(title, message)
-        root.destroy()

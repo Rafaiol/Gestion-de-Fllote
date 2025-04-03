@@ -312,7 +312,7 @@ class MainPage(ctk.CTkFrame):
                     if vehicule_id in self.main_app.highlighted_rows:
                         cursor.execute(
                             "SELECT date_assurance, date_control_technique "
-                            "FROM véhicule WHERE vehicule_id = ?",
+                            "FROM Vehicule WHERE vehicule_id = ?",
                             (vehicule_id,)
                         )
                         assurance_date, control_date = cursor.fetchone()
@@ -469,7 +469,7 @@ class MainPage(ctk.CTkFrame):
          y = (self.winfo_screenheight() - popup.winfo_height()) // 2
          popup.geometry(f"+{x}+{y}")
         
-        tab = "véhicule"
+        tab = "Vehicule"
         # Style
         style = ttk.Style()
         style.theme_use("classic")
@@ -555,7 +555,7 @@ class MainPage(ctk.CTkFrame):
     
     # Construct and execute SQL query with ORDER BY
             query = f"""
-            SELECT SELECT v.vehicule_id, v.marque, v.type, v.Immatriculation, 
+             SELECT v.vehicule_id, v.marque, v.type, v.Immatriculation, 
                     v.service_utilisateur
                 FROM Vehicule v ORDER BY {field} {sort_direction[col]}"""
             fetch_data(tree, query)
@@ -605,7 +605,7 @@ class MainPage(ctk.CTkFrame):
         self.add_button = ctk.CTkButton(self.buttons_frame,hover_color="#555555",corner_radius=5,width=25,height=25,text="",image=self.add_icon,fg_color="transparent",border_width=0,command=lambda: start_add_mode(self.tree, tab, self.add_button))
         self.add_button.grid(row=0, column=0, padx=10, pady=10,sticky="w")
         
-        self.search_button = ctk.CTkButton(self.buttons_frame, hover_color="#6a097d",width=25,height=25,text="",fg_color="transparent",image=self.search_icon,compound="left", command=lambda: fetch_by_field(self.tree, tab))
+        self.search_button = ctk.CTkButton(self.buttons_frame, hover_color="#555555",width=25,height=25,text="",fg_color="transparent",image=self.search_icon,compound="left", command=lambda: fetch_by_field(self.tree, tab))
         self.search_button.grid(row=0, column=3, padx=10, pady=10)
         
         self.update_button = ctk.CTkButton(self.buttons_frame,hover_color="#6a097d",fg_color="#6529ff", text="Update",command=lambda: update_popup(self.tree, tab))

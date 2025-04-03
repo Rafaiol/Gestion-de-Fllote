@@ -2,6 +2,11 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 from vehicules import MainPage as VehiculesPage
 from Glaciol import MainPage as GlaciolPage
+from Liquide_de_frein import MainPage as Liquide_de_freinPage
+from Huile_Moteur import MainPage as Huile_MoteurPage
+from Chaine_de_distrubution import MainPage as Chaine_MoteurPage
+from Courroie_Moteur import MainPage as Courroie_MoteurPage
+from Historique_Reparation import MainPage as ReparationPage
 import pyodbc
 import datetime
 from tkinter import ttk
@@ -26,10 +31,10 @@ class MainPage(ctk.CTk):
         self.nav_buttons = {}
         self.menu_icon = self.load_icon("Image_Assets/Menu.png", size=(25, 25))
         self.car_icon = self.load_icon("Image_Assets/front-car.png", size=(25, 25))
-        self.Interventions_icon = self.load_icon("Image_Assets/Interventions.png", size=(25, 25))
-        self.update_icon = self.load_icon("Image_Assets/Update.ico", size=(25, 25))
-        self.call_icon = self.load_icon("Image_Assets/Contact.ico", size=(25, 25))
-        self.about_icon = self.load_icon("Image_Assets/About.ico", size=(25, 25))
+        self.Interventions_icon = self.load_icon("Image_Assets/service-de-reparation.png", size=(25, 25))
+        self.Historique_Rep_icon = self.load_icon("Image_Assets/reparation-automobile.png", size=(25, 25))
+        self.Utilisateur_icon = self.load_icon("Image_Assets/utilisateur.png", size=(25, 25))
+        self.Rapports_icon = self.load_icon("Image_Assets/fichier-texte.png", size=(25, 25))
         self.close_icon = self.load_icon("Image_Assets/Close.ico", size=(25, 25))
         self.notification_icon = self.load_icon("Image_Assets/notification.png", size=(20, 20))
         self.notification_click_icon = self.load_icon("Image_Assets/notification_clicked.png", size=(20, 20))
@@ -56,9 +61,9 @@ class MainPage(ctk.CTk):
         # Add Navigation Buttons
         self.add_nav_button("Véhicules","Véhicules", self.car_icon, self.show_véhicules_page)
         self.add_nav_button("Interventions","Interventions", self.Interventions_icon, self.show_Interventions_page)
-        self.add_nav_button("Update","Update", self.update_icon, self.show_update_page)
-        self.add_nav_button("Contact","Contact", self.call_icon, self.show_call_page)
-        self.add_nav_button("About","About", self.about_icon, self.show_about_page)
+        self.add_nav_button("Historique","Historique", self.Historique_Rep_icon, self.show_Historique_Rep_page)
+        self.add_nav_button("Utilisateurs","Utilisateurs", self.Utilisateur_icon, self.show_Utilisateur_page)
+        self.add_nav_button("Rapports","Rapports", self.Rapports_icon, self.show_Rapports_page)
 
         # Default Page
         self.show_véhicules_page()
@@ -100,17 +105,23 @@ class MainPage(ctk.CTk):
             return
 
         today = datetime.date.today().strftime('%Y-%m-%d')
-        query = """
+        query_huile="""SELECT H.num_huile, v.vehicule_id, v.marque, v.type, v.Immatriculation, 
+                H.Index_veh, H.Index_veh_old
+            FROM Vehicule v
+            INNER JOIN huile_moteur H ON v.vehicule_id = H.vehicule_id
+            WHERE H.Index_veh - H.Index_veh_old >= 10000"""
+        query_vehicule = """
         SELECT vehicule_id, marque, type, date_assurance, date_control_technique
-        FROM véhicule
+        FROM Vehicule
         WHERE 
              date_assurance <= ? OR 
              date_control_technique <= ?
         """
         try:
             cursor = connection.cursor()
-            cursor.execute(query, (today, today))
+            cursor.execute(query_vehicule, (today, today))
             results = cursor.fetchall()
+            
 
             # Update the notification list
             self.notifications = []
@@ -127,8 +138,13 @@ class MainPage(ctk.CTk):
                     status = "OVERDUE" if control_date < today_date else "Due Today"
                     notification_text += f"| Control Technique {status}"
                 
-                self.notifications.append((vehicule_id, notification_text))
-
+                self.notifications.append(("vehicle",vehicule_id, notification_text))
+            cursor.execute(query_huile)
+            index_results = cursor.fetchall()
+            for row in index_results:
+                num_huile, vehicule_id, marque, type_, immatriculation, index_veh, index_veh_old = row
+                notification_text = f"{marque} {type_} ({immatriculation}) - Oil change needed (Index: {index_veh})"
+                self.notifications.append(("huile", num_huile, notification_text))
         finally:  
             connection.close()    
         if len(self.notifications)>0 :
@@ -257,11 +273,11 @@ class MainPage(ctk.CTk):
 
         
         # Populate notifications
-        for vehicule_id, text in self.notifications:
+        for notif_type, id_value, text in self.notifications:
             notif_btn = ctk.CTkButton(
                 scrollable_frame, text=text, font=("poppins", 12),
                 fg_color="transparent", hover_color="#555555",
-                corner_radius=5, command=lambda v=vehicule_id: [self.go_to_vehicle(v),remove_notification(v)],
+                corner_radius=5, command=lambda t=notif_type, i=id_value: [self.go_to_vehicle(t, i), remove_notification((t, i))],
                 anchor="w", width=220,height=50
             )
             notif_btn.pack(fill="x", pady=2, padx=5)
@@ -286,80 +302,128 @@ class MainPage(ctk.CTk):
         self.notification_popup.bind("<Button-1>", check_click)
         slide_in()  # Start the animation
 
-    def go_to_vehicle(self, vehicule_id):
+    def go_to_vehicle(self,notification_type, id_value):
             """Find, select, and highlight a vehicle in the Treeview."""
-            self.show_véhicules_page()
-            self.notification_popup.destroy()
-            
-            # Ensure VehiculesPage is loaded in the content frame
-            if not hasattr(self, "content_frame") or not self.content_frame.winfo_children():
-                print("Vehicle page not loaded yet.")
-                return
+            if notification_type == "vehicle":
+                self.show_véhicules_page()
+                self.notification_popup.destroy()
+                
+                # Ensure VehiculesPage is loaded in the content frame
+                if not hasattr(self, "content_frame") or not self.content_frame.winfo_children():
+                    print("Vehicle page not loaded yet.")
+                    return
 
-            vehicle_page = self.content_frame.winfo_children()[0]  # Get VehiculesPage instance
+                vehicle_page = self.content_frame.winfo_children()[0]  # Get VehiculesPage instance
 
-            # Ensure the instance has a Treeview
-            if not hasattr(vehicle_page, "tree"):
-                print("Treeview not found in vehicle page. Check if self.tree is set in vehicules.py.")
-                return
+                # Ensure the instance has a Treeview
+                if not hasattr(vehicle_page, "tree"):
+                    print("Treeview not found in vehicle page. Check if self.tree is set in vehicules.py.")
+                    return
 
-            tree = vehicle_page.tree  # Access the Treeview widget
-            found = False
-            assurance_date = None  # Initialize variables
-            control_date = None
+                tree = vehicle_page.tree  # Access the Treeview widget
+                found = False
+                assurance_date = None  # Initialize variables
+                control_date = None
 
-            # Reset previous highlight if any
-            if hasattr(self, "highlighted_row") and self.highlighted_row:
-                tree.item(self.highlighted_row, tags=("normalrow",))
-                self.highlighted_row = None
+                # Reset previous highlight if any
+                if hasattr(self, "highlighted_row") and self.highlighted_row:
+                    tree.item(self.highlighted_row, tags=("normalrow",))
+                    self.highlighted_row = None
 
-            # Ensure the Treeview has correct tag configurations
-            tree.tag_configure("highlighted", foreground="#c80036",background="#333333", font=('poppins', 12,"bold"))  # Red highlight
-            tree.tag_configure("normalrow", foreground="#b3b3b3",background="#333333")  # Default color
-            if not hasattr(self, "highlighted_rows"):
-                self.highlighted_rows = {}
+                # Ensure the Treeview has correct tag configurations
+                tree.tag_configure("highlighted", foreground="#c80036",background="#333333", font=('poppins', 12,"bold"))  # Red highlight
+                tree.tag_configure("normalrow", foreground="#b3b3b3",background="#333333")  # Default color
+                if not hasattr(self, "highlighted_rows"):
+                    self.highlighted_rows = {}
 
-            # Iterate over Treeview rows to find the matching vehicule_id
-            for item in tree.get_children():
-                values = tree.item(item)['values']
-                print(f"Checking row: {values}")  # Debugging output
+                # Iterate over Treeview rows to find the matching vehicule_id
+                for item in tree.get_children():
+                    values = tree.item(item)['values']
+                    print(f"Checking row: {values}")  # Debugging output
 
-                # Ensure matching ID (string vs int issue)
-                if values and str(values[0]) == str(vehicule_id):  
-                    tree.selection_set(item)  # Select the row
-                    tree.focus(item)  # Focus on the row
-                    tree.see(item)  # Scroll to it
-                    tree.item(item, tags=("highlighted",))  # Apply red highlight
-                    self.highlighted_row = item  # Save current highlighted row
+                    # Ensure matching ID (string vs int issue)
+                    if values and str(values[0]) == str(id_value):  
+                        tree.selection_set(item)  # Select the row
+                        tree.focus(item)  # Focus on the row
+                        tree.see(item)  # Scroll to it
+                        tree.item(item, tags=("highlighted",))  # Apply red highlight
+                        self.highlighted_row = item  # Save current highlighted row
+                        
+                        self.highlighted_rows[id_value] = item
+                        
+                        connection = self.get_connection()
+                        cursor = connection.cursor()
+                        cursor.execute(
+                            "SELECT date_assurance, date_control_technique "
+                            "FROM Vehicule WHERE vehicule_id = ?", 
+                            (id_value,)
+                        )
+                        assurance_date, control_date = cursor.fetchone()
+                        connection.close()
+                        found = True
+                        
+                        print(f"Vehicle {id_value} found and highlighted.")
+                        # Store highlighted vehicle's dates
+                        break
+                        
+                if not found:
+                    print(f"Vehicle {id_value} not found in table.")
+                    return
+                
+                
+                self.highlighted_vehicle_id = id_value
+                self.highlighted_dates = {
+                    'assurance': assurance_date,
+                    'control': control_date
+                }
+            elif notification_type == "huile":
+                # Handle oil change notification
+                self.show_Interventions_page()
+                self.notification_popup.destroy()
+                self.update()
+                # Get to the Huile Moteur page
+                huile_page = self.content_frame.winfo_children()[0]
+                
+                
+                
+                if not huile_page or not hasattr(huile_page, "tree"):
+                    print("Huile Moteur page or tree not found")
+                    return
                     
-                    self.highlighted_rows[vehicule_id] = item
-                    
-                    connection = self.get_connection()
-                    cursor = connection.cursor()
-                    cursor.execute(
-                        "SELECT date_assurance, date_control_technique "
-                        "FROM véhicule WHERE vehicule_id = ?", 
-                        (vehicule_id,)
-                    )
-                    assurance_date, control_date = cursor.fetchone()
-                    connection.close()
-                    found = True
-                    
-                    print(f"Vehicle {vehicule_id} found and highlighted.")
-                     # Store highlighted vehicle's dates
-                    break
-                    
-            if not found:
-                print(f"Vehicle {vehicule_id} not found in table.")
-                return
-            
-            
-            self.highlighted_vehicle_id = vehicule_id
-            self.highlighted_dates = {
-                'assurance': assurance_date,
-                'control': control_date
-            }
+                tree = huile_page.tree
+                huile_page.fetch_all_data(tree, "huile_moteur")
+                
+                # Reset previous highlight if any
+                if hasattr(self, "highlighted_huile_row") and self.highlighted_huile_row:
+                    tree.item(self.highlighted_huile_row, tags=("normalrow",))
+                    self.highlighted_huile_row = None
 
+                # Configure tags
+                tree.tag_configure("highlighted", foreground="#c80036", background="#333333", font=('poppins', 12, "bold"))
+                tree.tag_configure("normalrow", foreground="#b3b3b3", background="#333333")
+
+                # Find and highlight the row
+                for item in tree.get_children():
+                    values = tree.item(item)['values']
+                    if values and str(values[0]) == str(id_value):  # num_huile is first column
+                        tree.selection_set(item)
+                        tree.focus(item)
+                        tree.see(item)
+                        tree.item(item, tags=("highlighted",))
+                        self.highlighted_huile_row = item
+                        
+                        # Update index_veh_old in database
+                        connection = self.get_connection()
+                        try:
+                            cursor = connection.cursor()
+                            cursor.execute(
+                                "UPDATE huile_moteur SET Index_veh_old = Index_veh WHERE num_huile = ?",
+                                (id_value,)
+                            )
+                            connection.commit()
+                        finally:
+                            connection.close()
+                        break
     def check_highlight(self):
         """Re-check highlighted vehicle status after updates"""
         for vehicule_id in list(self.highlighted_rows.keys()):
@@ -388,7 +452,7 @@ class MainPage(ctk.CTk):
             anchor="w",
             font=("Helvetica", 14, "bold"),
         )
-        button.pack(fill="x", pady=5, padx=10)
+        button.pack(fill="x", pady=10, padx=10)
         self.nav_buttons[key] = button
     def set_active_button(self,key):
         # Reset all buttons to default color
@@ -410,25 +474,81 @@ class MainPage(ctk.CTk):
           
     def show_Interventions_page(self):
         self.clear_content_frame()
-        glaciol_frame = GlaciolPage(master=self.content_frame,fg_color="#050505")
-        glaciol_frame.page_frame.pack(fill="both", expand=True)
+
+        # Create a frame for the tab buttons
+        tab_button_frame = ctk.CTkFrame(self.content_frame, fg_color="#050505")
+        tab_button_frame.pack(side="top",anchor="center", padx=10, pady=10)
+
+        # Create a frame for the tab content
+        tab_content_frame = ctk.CTkFrame(self.content_frame, fg_color="#050505")
+        tab_content_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        tab_buttons = {}
+        default_fg_color = "#2b2b2b"  # Default button color
+        highlight_color = "#534AE1"  # Highlight color
+        # Function to switch tabs
+        def switch_tab(tab_name):
+            for button in tab_buttons.values():
+                button.configure(fg_color=default_fg_color,font=("poppins", 14))
+        
+            # Highlight the selected button
+            if tab_name in tab_buttons:
+                tab_buttons[tab_name].configure(fg_color=highlight_color,font=("poppins", 14,"bold"))
+                # Hide all frames
+            for widget in tab_content_frame.winfo_children():
+                widget.pack_forget()
+            
+            # Show the selected frame
+            if tab_name == "Huile Moteur":
+                Huile_frame.pack(fill="both", expand=True)
+            elif tab_name == "Chaine de Distribution":
+                Chaine_frame.pack(fill="both", expand=True)
+            elif tab_name == "Courroie Moteur":
+                Courroie_frame.pack(fill="both", expand=True)
+            elif tab_name == "Glaciol":
+                glaciol_frame.pack(fill="both", expand=True)
+            elif tab_name == "Liquide de Frein":
+                Liquide_frame.pack(fill="both", expand=True)
+
+        # Create tab buttons
+        tab_names = ["Huile Moteur", "Chaine de Distribution", "Courroie Moteur", "Glaciol", "Liquide de Frein"]
+        for name in tab_names:
+            button = ctk.CTkButton(
+                tab_button_frame,
+                text=name,
+                height=30,
+                font=("poppins", 14),  # Custom font
+                fg_color="#2b2b2b",  # Background color
+                hover_color="#534AE1",  # Hover color
+                command=lambda n=name: switch_tab(n),  # Switch to the selected tab
+            )
+            button.pack(side="left", padx=5, pady=5)
+            tab_buttons[name] = button
+        # Create frames for each tab
+        glaciol_frame = GlaciolPage(master=tab_content_frame, fg_color="#050505")
+        Liquide_frame = Liquide_de_freinPage(master=tab_content_frame, fg_color="#050505")
+        Huile_frame = Huile_MoteurPage(master=tab_content_frame, fg_color="#050505")
+        Chaine_frame = Chaine_MoteurPage(master=tab_content_frame, fg_color="#050505")
+        Courroie_frame = Courroie_MoteurPage(master=tab_content_frame, fg_color="#050505")
+
+        # Show the first tab by default
+        switch_tab("Huile Moteur")
+
         self.set_active_button("Interventions")
         
 
-    def show_update_page(self):
+    def show_Historique_Rep_page(self):
         self.clear_content_frame()
-        label = ctk.CTkLabel(self.content_frame, text="Update Page", font=("Arial", 16))
-        label.pack(pady=20)
+        Reparation_page=ReparationPage(master=self.content_frame,fg_color="#050505")
+        Reparation_page.pack(fill="both",expand=True)
+        self.set_active_button("Historique")
 
-    def show_call_page(self):
+    def show_Utilisateur_page(self):
         self.clear_content_frame()
-        label = ctk.CTkLabel(self.content_frame, text="Call Page", font=("Arial", 16))
-        label.pack(pady=20)
+        self.set_active_button("Utilisateurs")
 
-    def show_about_page(self):
+    def show_Rapports_page(self):
         self.clear_content_frame()
-        label = ctk.CTkLabel(self.content_frame, text="About Page", font=("Arial", 16))
-        label.pack(pady=20)
+        self.set_active_button("Rapports")
     
 if __name__ == "__main__":
     app = MainPage()

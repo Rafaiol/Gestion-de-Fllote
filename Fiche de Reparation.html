@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10mm;
+            font-size: 10pt;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15mm;
+        }
+        .header h1 {
+            font-size: 14pt;
+            margin-bottom: 2mm;
+            text-decoration: underline;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5mm;
+        }
+        table.details {
+            width: 100%;
+            border: none;
+        }
+        table.details td {
+            border: none;
+            padding: 1mm 0;
+        }
+        table.data {
+            border: 1px solid black;
+        }
+        table.data th, table.data td {
+            border: 1px solid black;
+            padding: 2mm;
+            text-align: left;
+        }
+        .signature {
+            margin-top: 15mm;
+            text-align: right;
+        }
+        .footer {
+            font-size: 8pt;
+            text-align: center;
+            margin-top: 10mm;
+        }
+        .underline {
+            text-decoration: underline;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>FICHE TECHNIQUE VÉHICULE</h1>
+        <p>Service: Maintenance Automobile | Date: {{ current_date }}</p>
+    </div>
+
+    <table class="details">
+        <tr>
+            <td width="30%" class="bold">Marque:</td>
+            <td>{{ vehicle.marque }}</td>
+            <td width="30%" class="bold">Type:</td>
+            <td>{{ vehicle.type }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Immatriculation:</td>
+            <td colspan="3">{{ vehicle.immatriculation }}</td>
+        </tr>
+    </table>
+
+    <table class="data">
+        <thead>
+            <tr>
+                <th width="15%">Date</th>
+                <th width="25%">Nature d'intervention</th>
+                <th width="15%">Index</th>
+                <th width="20%">Fournisseur</th>
+                <th width="25%">Technicien</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for intervention in vehicle.interventions %}
+            <tr>
+                <td>{{ intervention.date }}</td>
+                <td>{{ intervention.nature }}</td>
+                <td>{{ intervention.index }}</td>
+                <td>{{ intervention.fournisseur }}</td>
+                <td>{{ intervention.technicien }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="section">
+        <p class="bold underline">Observations:</p>
+        <p>{{ vehicle.observations }}</p>
+    </div>
+
+    <div class="signature">
+        <p>Le Responsable Maintenance,</p>
+        <br><br>
+        <p>_________________________</p>
+    </div>
+
+    <div class="footer">
+        <p>Document généré automatiquement - Ne pas modifier manuellement</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10mm;
+            font-size: 10pt;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15mm;
+        }
+        .header h1 {
+            font-size: 14pt;
+            margin-bottom: 2mm;
+            text-decoration: underline;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5mm;
+        }
+        table.details {
+            width: 100%;
+            border: none;
+        }
+        table.details td {
+            border: none;
+            padding: 1mm 0;
+        }
+        table.data {
+            border: 1px solid black;
+        }
+        table.data th, table.data td {
+            border: 1px solid black;
+            padding: 2mm;
+            text-align: left;
+        }
+        .signature {
+            margin-top: 15mm;
+            text-align: right;
+        }
+        .footer {
+            font-size: 8pt;
+            text-align: center;
+            margin-top: 10mm;
+        }
+        .underline {
+            text-decoration: underline;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .piece-list {
+            margin-left: 5mm;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>FICHE DE RÉPARATION VÉHICULE</h1>
+        <p>N°: {{ data.num_reparation }} | Date: {{ data.date_actuelle }}</p>
+    </div>
+
+    <table class="details">
+        <tr>
+            <td width="30%" class="bold">Marque:</td>
+            <td>{{ data.marque }}</td>
+            <td width="30%" class="bold">Type:</td>
+            <td>{{ data.type }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Immatriculation:</td>
+            <td>{{ data.immatriculation }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Date entrée:</td>
+            <td>{{ data.date_entree }}</td>
+            <td class="bold">Date sortie:</td>
+            <td>{{ data.date_sortie }}</td>
+        </tr>
+    </table>
+
+    <div class="section">
+        <p class="bold underline">Pièces de rechange:</p>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th>Pièce</th>
+                    <th>Quantité</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for piece in data.pieces_rechange.split('+') %}
+                    {% if piece.strip() %}
+                        {% if piece.strip().split(' ')|length > 1 and piece.strip().split(' ')[0]|int != 0 %}
+                            <tr>
+                                <td>{{ piece.strip().split(' ', 1)[1] }}</td>
+                                <td>{{ piece.strip().split(' ')[0] }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td>{{ piece.strip() }}</td>
+                                <td>1</td>
+                            </tr>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <table class="details">
+        <tr>
+            <td class="bold">Coût total:</td>
+            <td>{{ data.cout_reparation }} DA</td>
+        </tr>
+        <tr>
+            <td class="bold">Numéro Facture:</td>
+            <td>{{ data.num_facture }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Fournisseur:</td>
+            <td>{{ data.fournisseur }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Technicien:</td>
+            <td>{{ data.technicien }}</td>
+        </tr>
+    </table>
+
+    <div class="signature">
+        <p>Le Responsable Maintenance,</p>
+        <br><br>
+        <p>_________________________</p>
+    </div>
+
+    <div class="footer">
+        <p>Document généré automatiquement</p>
+    </div>
+</body>
+</html>
