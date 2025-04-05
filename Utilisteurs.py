@@ -5,9 +5,7 @@ from tkinter import ttk
 import pyodbc
 from PIL import Image, ImageTk
 import os
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
-from openpyxl.utils import get_column_letter
+
 
 ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
 ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
@@ -69,34 +67,10 @@ class MainPage(ctk.CTkFrame):
          except pyodbc.Error as e:
           messagebox.showerror("Database Error", f"Failed to connect: {str(e)}")
           return None
-        def get_vehicles():
-            try:
-                connection = get_connection()
-                cursor = connection.cursor()
-                cursor.execute("SELECT vehicule_id,marque, type, Immatriculation FROM Vehicule")
-                vehicules = cursor.fetchall()
-                return [f"{vehicule[2]} - {vehicule[3]}" for vehicule in vehicules], vehicules
-            except pyodbc.Error as e:
-                messagebox.showerror("Database Error", f"Failed to fetch vehicles: {str(e)}")
-                return [], []
-
+        
         
         def start_add_mode(tree, tab):
-            def on_vehicule_select(selected_vehicle):
-                        global vehicule_id
-                        selected_type, selected_immat = selected_vehicle.split(" - ")
-                        for vehicule in vehicle_data:   
-                            if vehicule[2] == selected_type and vehicule[3] == selected_immat:
-                                entries[1].configure(state="normal")  # Enable entry temporarily
-                                entries[1].delete(0, 'end')
-                                entries[1].insert(0, vehicule[1])
-                                entries[1].configure(state="readonly")  # Set back to readonly
-                                
-                                entries[2].configure(state="normal")
-                                entries[2].delete(0, 'end')
-                                entries[2].insert(0, vehicule[3])
-                                entries[2].configure(state="readonly")  # Immatriculation
-                                return vehicule[0]
+            
                            
             # Create popup window
             popup = ctk.CTkToplevel()
@@ -119,9 +93,9 @@ class MainPage(ctk.CTkFrame):
             # Get vehicle data
             
             # Fields and entries
-            fields = [ "Type:","Marque", "Immatriculation", "Date de Changement", "Litre" ,"Num Facture","Nom Fournisseur","Technicien"]
+            fields = [ "Nom complet","Nom Utilisateur", "Mot de passe", "Role"]
             entries = []
-            vehicle_names, vehicle_data = get_vehicles()
+            
             
             
             # Create entries with improved layout
@@ -135,33 +109,14 @@ class MainPage(ctk.CTkFrame):
                 label = ctk.CTkLabel(field_frame, text=field + ":", font=("Helvetica", 18))
                 label.pack(anchor="w", pady=(0, 2))
                 
-                if field == "Type:":
-                    type_combo = ctk.CTkComboBox(field_frame,
-                                        values=vehicle_names,
-                                        font=("poppins", 13),
-                                        width=220,
-                                        height=30,
-                                        corner_radius=8,
-                                        border_width=2, 
-                                        state="readonly",
-                                        command=on_vehicule_select,)
+                
                     
-                    type_combo.pack(fill="x")
-                    entries.append(type_combo)
-                    type_combo.bind('<FocusIn>', lambda : type_combo.configure(border_color="#561B8D"))
-                    
-                    
-                    
-                else:
-                    entry = ctk.CTkEntry(field_frame, font=("Helvetica", 13),placeholder_text=field, width=220,border_color="", height=40)
-                    entry.pack(fill="x")
-                    entry.configure(state="readonly")
-                    entries.append(entry)
-                    if not fields[i] in ["Marque","Type", "Immatriculation"]:
-                        entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
-                        entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
-                        entry.configure(state="normal")
-            
+                entry = ctk.CTkEntry(field_frame, font=("Helvetica", 13),placeholder_text=field, width=220,border_color="", height=40)
+                entry.pack(fill="x")
+                if field == "Role":
+                    entry.configure(text="Technicien")
+                entries.append(entry)
+                   
             
             
 
@@ -170,16 +125,16 @@ class MainPage(ctk.CTkFrame):
             button_frame.grid(row=5, column=0, columnspan=2, pady=20, sticky="e")
 
             def save_record(): 
-                vehicule_id = on_vehicule_select(type_combo.get())
                 
                 
-                values = [vehicule_id,entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip()]
+                
+                values = [entries[0].get().strip(),entries[1].get().strip(),entries[2].get().strip(),entries[3].get().strip()]
                 
                 if any(value == '' for value in values):
                     messagebox.showerror("Error", "Please fill all fields")
                     return
                 
-                query = "INSERT INTO Liquide_de_frin (vehicule_id,date_liquide, litre,Num_facture,nom_fournisseur,Technicien) VALUES (?, ?, ?, ?, ?, ?)"
+                query = "INSERT INTO utilisateurs (full_name,username, password_v,role) VALUES (?, ?, ?, ?)"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
@@ -256,14 +211,12 @@ class MainPage(ctk.CTkFrame):
                                     command=lambda: update_popup(tree, tab,row_id))
             delete_btn = ctk.CTkButton(row_button_frame, text="", fg_color="transparent",width=30,image=self.supprimer_icon ,
                                     command=lambda: delete_selected(tree, tab,row_id))
-            inspect_btn = ctk.CTkButton(row_button_frame, text="", fg_color="transparent",width=30,image=self.Inspect_icon,command=lambda: show_inspect_window(self, tree, row_id) )
-            if self.user_role == "technicien":
-                update_btn.configure(state="disabled", fg_color="gray")
-                delete_btn.configure(state="disabled", fg_color="gray")
+            
+           
             # Pack buttons inside the frame
             update_btn.pack(side="left", padx=2)
             delete_btn.pack(side="left", padx=2)
-            inspect_btn.pack(side="left", padx=2)
+            
             
             self.existing_button_frames[vehicule_id] = row_button_frame
         
@@ -278,16 +231,15 @@ class MainPage(ctk.CTkFrame):
                 
             
             value = self.search_entry.get()
-            query = f'''SELECT  L.num_liquide,v.marque, v.type, v.Immatriculation,L.date_liquide,L.litre  
-                    FROM Vehicule v
-                    INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id WHERE 
-                    L.num_liquide LIKE ? OR 
-                    v.marque LIKE ? OR 
-                    v.type LIKE ? OR 
-                    v.Immatriculation LIKE ? OR 
-                    L.date_liquide LIKE ? OR 
-                    L.litre LIKE ?'''
-            params = (f"%{value}%",) * 6 
+            query = f'''SELECT  id,full_name, username, password_v,role 
+                    FROM utilisateurs
+                     WHERE 
+                    id LIKE ? OR 
+                    full_name LIKE ? OR 
+                    username LIKE ? OR 
+                    password_v LIKE ? OR 
+                    v,role LIKE ? '''
+            params = (f"%{value}%",) * 5
             fetch_data(tree, query, params)
             
                 
@@ -300,9 +252,9 @@ class MainPage(ctk.CTkFrame):
                 print("Please enter a table name.")
                 return
             query = """
-                SELECT  L.num_liquide, v.marque, v.type, v.Immatriculation,L.date_liquide,L.litre  
-                        FROM Vehicule v
-                        INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id
+                SELECT  id,full_name, username, password_v,role,last_login 
+                        FROM utilisateurs
+                        
                 """
             fetch_data(tree, query)
 
@@ -324,7 +276,7 @@ class MainPage(ctk.CTkFrame):
                 current_values = tree.item(row_id)['values']
                 
                 record_id = current_values[0]  # Assuming first column is ID
-                cursor.execute(f"DELETE FROM {tab} WHERE num_liquide = ?", (record_id,))
+                cursor.execute(f"DELETE FROM {tab} WHERE id = ?", (record_id,))
                 
                 # Remove associated button frame
                 if record_id in self.existing_button_frames:
@@ -355,7 +307,7 @@ class MainPage(ctk.CTkFrame):
                 messagebox.showwarning("Warning", "Please fill all fields")
                 return
 
-            query = f"UPDATE {tab} SET  date_liquide = ?, litre = ?,Num_facture = ?,nom_fournisseur = ?,Technicien = ? WHERE num_liquide = ?"
+            query = f"UPDATE {tab} SET  full_name = ?, username = ?,password_v = ?,role = ?"
             try:
                 connection = get_connection()
                 cursor = connection.cursor()
@@ -375,11 +327,10 @@ class MainPage(ctk.CTkFrame):
             current_values = tree.item(row_id)['values']
             glac_num = current_values[0]
             # Fetch complete data using existing pattern
-            query = """SELECT v.marque, v.type, v.Immatriculation, L.date_liquide, L.litre, 
-                            L.Num_facture, L.nom_fournisseur,L.Technicien
-                    FROM Liquide_de_frin L
-                    INNER JOIN Vehicule v ON L.vehicule_id = v.vehicule_id
-                    WHERE L.num_liquide = ?"""
+            query = """SELECT full_name, username, password_v,role 
+                    FROM utilisateurs
+                    
+                    WHERE utilisateurs = ?"""
             
             try:
                 connection = get_connection()
@@ -411,7 +362,7 @@ class MainPage(ctk.CTkFrame):
             main_frame.grid_rowconfigure(4, weight=1)
 
             # Fields and entries
-            fields = ["Marque", "Type", "Immatriculation", "Date de Changement", "Litre","Num Facture","Nom Fournisseur","Technicien"]
+            fields = ["Nom complet","Nom Utilisateur", "Mot de passe", "Role"]
             entries = []
 
             # Create entries with improved layout
@@ -430,17 +381,13 @@ class MainPage(ctk.CTkFrame):
                 entry.pack(fill="x")
                 
                 entries.append(entry)
-                if not fields[i] in ["Marque","Type", "Immatriculation"]:
-                    entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
-                    entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
-                    entry.configure(state="readonly")
+                
             # Populate entries with current values
             for entry, value in zip(entries, full_data):
-                entry.configure(state="normal")
+                
                 entry.delete(0, 'end')
                 entry.insert(0, str(value))
-                if entry.cget("state") == "readonly":
-                    entry.configure(state="readonly")
+                
 
             # Button frame at bottom right
             button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -476,270 +423,12 @@ class MainPage(ctk.CTkFrame):
             x = (self.winfo_screenwidth() - popup.winfo_width()) // 2
             y = (self.winfo_screenheight() - popup.winfo_height()) // 2
             popup.geometry(f"+{x}+{y}")
-        def show_inspect_window(self, tree, row_id):
-            current_values = tree.item(row_id)['values']
-            glac_num = current_values[0]  # Get the glaciol number
-
-            # Fetch complete data including new fields
-            try:
-                connection = get_connection()
-                cursor = connection.cursor()
-                cursor.execute("""
-                    SELECT L.num_liquide,v.marque, v.type, v.Immatriculation, L.date_liquide, L.litre, 
-                            L.Num_facture, L.nom_fournisseur,L.Technicien
-                    FROM Liquide_de_frin L
-                    INNER JOIN Vehicule v ON L.vehicule_id = v.vehicule_id
-                    WHERE L.num_liquide = ?
-                """, (glac_num,))
-                full_data = cursor.fetchone()
-            except pyodbc.Error as e:
-                messagebox.showerror("Database Error", f"Failed to fetch details: {str(e)}")
-                return
-            finally:
-                if connection:
-                    connection.close()
-            # Get all items and current index
-            all_items = tree.get_children()
-            current_index = all_items.index(row_id) 
+        
             
-            # Create sliding window
-            inspect_win = ctk.CTkToplevel()
-            inspect_win.withdraw()
-            inspect_win.overrideredirect(True)
-            inspect_win.attributes("-topmost", True)
-            inspect_win.fg_color = ("#2b2b2b", "#2b2b2b")
-            
-            window_width = 300  # Set your desired width
-            window_height = 700  # Set your desired height
-            screen_width = self.winfo_screenwidth()
-            screen_height = self.winfo_screenheight()
-                    
-            # Animation variables
-            target_x = screen_width - window_width  # 20px margin from right
-            current_x = screen_width + 500  # Start fully off-screen
-            current_y = (screen_height - window_height) // 2 
-            fade_alpha = 0.0
+        
 
             
-            
-            # Navigation variables
-            main_container = ctk.CTkFrame(inspect_win, fg_color="#333333",corner_radius=20)
-            main_container.pack(fill="both", expand=True, padx=10, pady=10)
-
-            # Close button (fixed position)
-            close_btn = ctk.CTkButton(
-                main_container,
-                text="✕",
-                command=lambda: fade_out(),
-                fg_color="transparent",
-                width=30,
-                height=30,
-                font=("Arial", 16)
-            )
-            close_btn.place(relx=0.98, rely=0.02, anchor="ne")
-
-            # Content frame (scrollable)
-            content_frame = ctk.CTkScrollableFrame(main_container, fg_color="transparent")
-            content_frame.pack(fill="both", expand=True, pady=40)
-            
-            inspect_win.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
-            inspect_win.deiconify()
-            inspect_win.attributes("-alpha", 0.01)
-            
-            def update_display():
-                nonlocal current_index
-                item_id = all_items[current_index]
-                values = tree.item(item_id, 'values')
-                fields = [
-                        ("N°", full_data[0]),
-                        ("Marque", full_data[1]),
-                        ("Type", full_data[2]),
-                        ("Immatriculation", full_data[3]),
-                        ("Date de Changement", full_data[4]),
-                        ("Litre", full_data[5]),
-                        ("Num Facture", full_data[6]),  # New field
-                        ("Nom Fournisseur", full_data[7]),
-                        ("Technicien",full_data[8])# New field
-                        ]
-
-                
-                # Clear previous entries
-                for widget in content_frame.winfo_children():
-                    widget.destroy()
-                
-                # Display fields
-                for field_name, value in fields:
-                    row_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-                    row_frame.pack(fill="x", pady=5)
-                    
-                    label1 = ctk.CTkLabel(row_frame, 
-                                        text=f"{field_name}:",
-                                        font=("poppins", 12, "bold"))
-                    label1.pack(anchor="w")
-                    
-                    entry1 = ctk.CTkEntry(row_frame,height=40,width=250, font=("poppins", 12))
-                    entry1.insert(0, str(value))
-                    entry1.configure(state="readonly")
-                    entry1.pack(side="left",pady=5)
-
-                    # Second column if exists
-                    
-                
-                # Navigation buttons
-                btn_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-                btn_frame.pack(side="bottom", fill="x", pady=20)
-                
-                prev_btn = ctk.CTkButton(
-                    btn_frame, 
-                    text="◄ Previous",width=80,
-                    fg_color="#534AE1" if current_index > 0 else "gray30",
-                    command=lambda: navigate(-1),
-                    state="normal" if current_index > 0 else "disabled"
-                )
-                prev_btn.pack(side="left", padx=10)
-                
-                next_btn = ctk.CTkButton(
-                    btn_frame, 
-                    text="Next ►",width=80,
-                    fg_color="#534AE1" if current_index < len(all_items)-1 else "gray30",
-                    command=lambda: navigate(1),
-                    state="normal" if current_index < len(all_items)-1 else "disabled"
-                )
-                next_btn.pack(side="right", padx=10)
-                
-                # Update treeview selection
-                tree.selection_set(all_items[current_index])
-                tree.see(all_items[current_index])
-            
-            def navigate(direction):
-                nonlocal current_index
-                new_index = current_index + direction
-                if 0 <= new_index < len(all_items):
-                    current_index = new_index
-                    update_display()
-
-            def fade_out():
-                def animate():
-                        nonlocal current_x
-                        current_x += 30  # Move right while fading
-                        inspect_win.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
-                        
-                        nonlocal fade_alpha
-                        fade_alpha = max(0, fade_alpha - 0.1)
-                        inspect_win.attributes("-alpha", fade_alpha)
-                        
-                        if fade_alpha > 0:
-                            inspect_win.after(20, animate)
-                        else:
-                            inspect_win.destroy()
-                animate()
-
-            # Bind window close events
-            def check_click(event):
-                x, y = event.x_root, event.y_root
-                win_x = inspect_win.winfo_x()
-                win_y = inspect_win.winfo_y()
-                win_width = inspect_win.winfo_width()
-                win_height = inspect_win.winfo_height()
-                
-                if not (win_x <= x <= win_x + win_width and
-                        win_y <= y <= win_y + win_height):
-                    fade_out()
-            inspect_win.bind("<Button-1>", check_click)
-            # Start animations
-            def slide_in():
-                nonlocal current_x, fade_alpha
-                if current_x > target_x:
-                    current_x -= 30
-                    fade_alpha = min(fade_alpha + 0.05, 1.0)  # Gradually increase opacity
-                    inspect_win.attributes("-alpha", fade_alpha)
-                    inspect_win.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
-                    inspect_win.after(15, slide_in)
-                else:
-                    inspect_win.attributes("-alpha", 1) 
-
-            update_display()
-            slide_in()
-        def export_visible_to_excel():
-
-
-
-            # Collect all visible num_glaciol IDs from the Treeview
-            num_Liquide_list = []
-            for item in tree.get_children():
-                row_values = tree.item(item)['values']
-                if row_values:
-                    num_Liquide_list.append(row_values[0])  # Assuming col1 is num_glaciol (primary key)
-
-            if not num_Liquide_list:
-                messagebox.showwarning("No Data", "No data to export!")
-                return
-            
-            # Prepare SQL query to fetch full data of only visible rows
-            id_list = ','.join(str(Liquide_id) for Liquide_id in num_Liquide_list)
-            print(id_list)
-            query = f"""
-                SELECT L.num_liquide AS [N°], v.marque AS [Marque], v.type AS [Type], v.Immatriculation AS [Immatriculation], 
-                    L.date_liquide AS [Date de Changement], L.litre AS [Litre], L.Num_facture AS [Num Facture], L.nom_fournisseur AS [Nom Fournisseur],L.Technicien AS [Technicien]
-                FROM Vehicule v
-                INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id
-                WHERE L.num_liquide IN ({id_list})
-            """
-
-            try:
-                connection = get_connection()
-                cursor = connection.cursor()
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                print(rows)
-                # Column names from SQL aliases (inspect view)
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                ws.title = "Glaciol Export"
-
-                # Write headers (as in inspect window / database)
-                headers = ["N°", "Marque", "Type", "Immatriculation", 
-                        "Date de Changement", "Litre", "Num Facture", "Nom Fournisseur","Technicien"]
-                ws.append(headers)
-
-                # Write data rows manually
-                for db_row in rows:
-                    ws.append(list(db_row))  # Ensure it's a list
-                header_font = Font(bold=True, color="FFFFFF", size=12)
-                header_fill = PatternFill(fill_type="solid", fgColor="4F81BD")  # Blue background
-                alignment = Alignment(horizontal="left", vertical="center")
-                ws.row_dimensions[1].height = 30
-                for col_num, header in enumerate(headers, 1):
-                    cell = ws.cell(row=1, column=col_num)
-                    cell.font = header_font
-                    cell.fill = header_fill
-                    cell.alignment = alignment
-                for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-                    for cell in row:
-                        cell.alignment = Alignment(horizontal="left", vertical="center")    
-                #   Adjust Column Widths
-                for col_num, header in enumerate(headers, 1):
-                    max_length = max((len(str(ws.cell(row=row, column=col_num).value)) for row in range(1, ws.max_row + 1)), default=10)
-                    adjusted_width = (max_length + 2)
-                    ws.column_dimensions[get_column_letter(col_num)].width = adjusted_width
-                # Save the workbook
-                file_path = os.path.abspath("Liquide_de_frin__Export.xlsx")
-                wb.save(file_path)
-
-                messagebox.showinfo("Export Successful", f"Data exported to {file_path}")
-
-                # Auto-open the Excel file
-                
-                os.startfile(file_path)  # Windows
-              
-            except Exception as e:
-                messagebox.showerror("Export Error", str(e))
-            finally:
-                if 'connection' in locals():
-                    connection.close()
-
-            
-        tab = "Liquide_de_frin"
+        tab = "utilisateurs"
         # Style
         style = ttk.Style()
         #style.theme_use("classic")
@@ -789,25 +478,25 @@ class MainPage(ctk.CTkFrame):
         "col3": None,
         "col4": None,
         "col5": None,
-        "col6": None,
+        
         
     }   
         column_headings = {
-    "col1": "N°",
-    "col2": "Marque",
-    "col3": "Type", 
-    "col4": "Immatriculation",
-    "col5": "Date de Changement",
-    "col6": "Litre",
+    "col1": "ID",
+    "col2": "Nom Complet",
+    "col3": "Nom Utilisateur", 
+    "col4": "Mot de passe",
+    "col5": "Role",
+    "col6": "Dernière Entrée",
         
     }
         ord_column_headings = {
-    "col1": "num_liquide",
-    "col2": "Marque",
-    "col3": "Type", 
-    "col4": "Immatriculation",
-    "col5": "date_liquide",
-    "col6": "Litre",
+    "col1": "id",
+    "col2": "full_name",
+    "col3": "username", 
+    "col4": "password_v",
+    "col5": "role",
+    "col6": "last_login",
     }
     
         def treeview_sort_column(tree, col, tab):
@@ -822,17 +511,19 @@ class MainPage(ctk.CTkFrame):
     
     # Construct and execute SQL query with ORDER BY
             query = f"""
-            SELECT L.num_liquide, v.marque, v.type, v.Immatriculation,L.date_liquide,L.litre  
-                        FROM Vehicule v
-                        INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id
+            SELECT id,full_name, username, password_v,role
+                        FROM utilisateurs
+                        
             ORDER BY {field} {sort_direction[col]}"""
             fetch_data(tree, query)
     
 # Set column headings and properties
         for col, heading in column_headings.items():
             tree.heading(col, text=heading, anchor=tk.W,command=lambda c=col: treeview_sort_column(tree, c, tab))
-            if col == "col1" or col == "col6":
-                tree.column(col, anchor=tk.W, width=40, minwidth=60)
+            if col == "col1":
+                tree.column(col, anchor=tk.W, width=60, minwidth=60)
+            elif col == "col5":
+                tree.column(col, anchor=tk.W, width=80, minwidth=80)
             else:
                 tree.column(col, anchor=tk.W, width=180, minwidth=100)
 
@@ -866,18 +557,10 @@ class MainPage(ctk.CTkFrame):
         
         self.add_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Ajouter",image=self.add_icon,fg_color="#534ae1",corner_radius=30,compound="left",command=lambda: start_add_mode(tree, tab, ))
         self.add_button.grid(row=0, column=1, padx=10, pady=10,sticky="e")
-        if self.user_role == "technicien":
-            self.add_button.configure(state="disabled", fg_color="gray")
-        self.export_button = ctk.CTkButton(
-                self.buttons_frame,
-                text="Export to Excel",
-                fg_color="#4CAF50",  # Green button
-                corner_radius=30,
-                command=export_visible_to_excel
-            )
-        self.export_button.grid(row=0, column=3, padx=10, pady=10)
-        self.filter_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Filter",image=self.filter_icon,compound="left",fg_color="transparent",corner_radius=30, command=lambda: filter_search(tree, tab))
-        self.filter_button.grid(row=0, column=4, padx=10, pady=10)
+        
+        
+        
+        
 
         self.refresh_button = ctk.CTkButton(self.buttons_frame,width=30 ,text="Refresh",image=self.refresh_icon,compound="left",fg_color="transparent",corner_radius=30,command=lambda: fetch_all_data(tree, tab))
         self.refresh_button.grid(row=0, column=2, padx=10, pady=10)

@@ -7,6 +7,7 @@ from Huile_Moteur import MainPage as Huile_MoteurPage
 from Chaine_de_distrubution import MainPage as Chaine_MoteurPage
 from Courroie_Moteur import MainPage as Courroie_MoteurPage
 from Historique_Reparation import MainPage as ReparationPage
+from Utilisteurs import MainPage as UtilisteursPage
 import pyodbc
 import datetime
 from tkinter import ttk
@@ -18,11 +19,13 @@ ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
 ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
 class MainPage(ctk.CTk):
-    def __init__(self):
+    def __init__(self,user_role = None ,full_name = None):
         super().__init__()
         self.geometry("800x600")
         self.title("Main Page")
         
+        self.user_role = user_role
+        self.full_name = full_name
         
         self.highlighted_vehicle_id = None
         self.highlighted_dates = {} # Counter for notifications
@@ -57,12 +60,13 @@ class MainPage(ctk.CTk):
 
         # Load Icons
         
-
+        print(self.user_role)
         # Add Navigation Buttons
         self.add_nav_button("Véhicules","Véhicules", self.car_icon, self.show_véhicules_page)
         self.add_nav_button("Interventions","Interventions", self.Interventions_icon, self.show_Interventions_page)
         self.add_nav_button("Historique","Historique", self.Historique_Rep_icon, self.show_Historique_Rep_page)
-        self.add_nav_button("Utilisateurs","Utilisateurs", self.Utilisateur_icon, self.show_Utilisateur_page)
+        if  user_role != "technicien":
+         self.add_nav_button("Utilisateurs", "Utilisateurs", self.Utilisateur_icon, self.show_Utilisateur_page)
         self.add_nav_button("Rapports","Rapports", self.Rapports_icon, self.show_Rapports_page)
 
         # Default Page
@@ -331,8 +335,8 @@ class MainPage(ctk.CTk):
                     self.highlighted_row = None
 
                 # Ensure the Treeview has correct tag configurations
-                tree.tag_configure("highlighted", foreground="#c80036",background="#333333", font=('poppins', 12,"bold"))  # Red highlight
-                tree.tag_configure("normalrow", foreground="#b3b3b3",background="#333333")  # Default color
+                tree.tag_configure("highlighted", foreground="#c80036", font=('poppins', 12,"bold"))  # Red highlight
+                tree.tag_configure("normalrow", foreground="#b3b3b3")  # Default color
                 if not hasattr(self, "highlighted_rows"):
                     self.highlighted_rows = {}
 
@@ -440,6 +444,8 @@ class MainPage(ctk.CTk):
 
     def add_nav_button(self,key, text, icon, command):
         """Create a navigation button."""
+        if key == "Utilisateurs" and self.user_role == "technicien":
+          return
         button = ctk.CTkButton(
             self.menu_frame,
             text=text,
@@ -452,6 +458,7 @@ class MainPage(ctk.CTk):
             anchor="w",
             font=("Helvetica", 14, "bold"),
         )
+        
         button.pack(fill="x", pady=10, padx=10)
         self.nav_buttons[key] = button
     def set_active_button(self,key):
@@ -466,10 +473,12 @@ class MainPage(ctk.CTk):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
     def show_véhicules_page(self):
-          self.clear_content_frame()
-          vehicules_page=VehiculesPage(master=self.content_frame,main_app=self,fg_color="#050505")
-          vehicules_page.pack(fill="both",expand=True)
-          self.set_active_button("Véhicules")
+        self.clear_content_frame()
+          
+        vehicules_page =VehiculesPage(master=self.content_frame, user_role=self.user_role,fg_color="#050505")
+        vehicules_page.pack(fill="both",expand=True)
+        self.set_active_button("Véhicules")
+          
           
           
     def show_Interventions_page(self):
@@ -524,11 +533,11 @@ class MainPage(ctk.CTk):
             button.pack(side="left", padx=5, pady=5)
             tab_buttons[name] = button
         # Create frames for each tab
-        glaciol_frame = GlaciolPage(master=tab_content_frame, fg_color="#050505")
-        Liquide_frame = Liquide_de_freinPage(master=tab_content_frame, fg_color="#050505")
-        Huile_frame = Huile_MoteurPage(master=tab_content_frame, fg_color="#050505")
-        Chaine_frame = Chaine_MoteurPage(master=tab_content_frame, fg_color="#050505")
-        Courroie_frame = Courroie_MoteurPage(master=tab_content_frame, fg_color="#050505")
+        glaciol_frame = GlaciolPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
+        Liquide_frame = Liquide_de_freinPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
+        Huile_frame = Huile_MoteurPage(master=tab_content_frame,user_role=self.user_role , fg_color="#050505")
+        Chaine_frame = Chaine_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
+        Courroie_frame = Courroie_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
 
         # Show the first tab by default
         switch_tab("Huile Moteur")
@@ -538,17 +547,22 @@ class MainPage(ctk.CTk):
 
     def show_Historique_Rep_page(self):
         self.clear_content_frame()
-        Reparation_page=ReparationPage(master=self.content_frame,fg_color="#050505")
-        Reparation_page.pack(fill="both",expand=True)
-        self.set_active_button("Historique")
+        self.after(300, lambda: [
+        Reparation_page :=ReparationPage(master=self.content_frame, user_role=self.user_role,fg_color="#050505"),
+        Reparation_page.pack(fill="both",expand=True),
+        self.set_active_button("Historique")])
 
     def show_Utilisateur_page(self):
         self.clear_content_frame()
-        self.set_active_button("Utilisateurs")
+        self.after(300, lambda: [
+        Utilisateurs_page :=UtilisteursPage(master=self.content_frame, user_role=self.user_role,fg_color="#050505"),
+        Utilisateurs_page.pack(fill="both",expand=True),
+        self.set_active_button("Utilisateurs")])
 
     def show_Rapports_page(self):
         self.clear_content_frame()
-        self.set_active_button("Rapports")
+        self.after(300, lambda: [
+        self.set_active_button("Rapports")])
     
 if __name__ == "__main__":
     app = MainPage()

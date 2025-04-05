@@ -13,6 +13,7 @@ import pdfkit
 import os
 import datetime
 
+
 ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
 ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
@@ -22,8 +23,9 @@ class MainPage(ctk.CTkFrame):
          img =  Image.open(path)
          img_resized = img.resize(size, Image.Resampling.LANCZOS)
          return ImageTk.PhotoImage(img_resized) 
-    def __init__(self, master=None, **kwargs):
+    def __init__(self, master=None,user_role=None, **kwargs):
         super().__init__(master, **kwargs)
+        self.user_role = user_role
         self.pack(fill="both", expand=True)
         
         self.existing_button_frames = {}
@@ -328,7 +330,9 @@ class MainPage(ctk.CTkFrame):
             delete_btn = ctk.CTkButton(row_button_frame, text="", fg_color="transparent",width=30,image=self.supprimer_icon ,
                                     command=lambda: delete_selected(tree, tab,row_id))
             inspect_btn = ctk.CTkButton(row_button_frame, text="", fg_color="transparent",width=30,image=self.Inspect_icon,command=lambda: show_inspect_window(self, tree, row_id) )
-
+            if self.user_role == "technicien":
+                update_btn.configure(state="disabled", fg_color="gray")
+                delete_btn.configure(state="disabled", fg_color="gray")
             # Pack buttons inside the frame
             update_btn.pack(side="left", padx=2)
             delete_btn.pack(side="left", padx=2)
@@ -706,28 +710,28 @@ class MainPage(ctk.CTkFrame):
                 
                 prev_btn = ctk.CTkButton(
                     btn_frame, 
-                    text="◄ Previous",width=80,
+                    text="◄ Précédent",width=80,
                     fg_color="#534AE1" if current_index > 0 else "gray30",
                     command=lambda: navigate(-1),
                     state="normal" if current_index > 0 else "disabled"
                 )
-                prev_btn.pack(side="left", padx=10)
+                prev_btn.pack(side="left")
                 pdf_btn = ctk.CTkButton(
                     btn_frame, 
-                    text="Generate PDF",
+                    text="Générer PDF",width=80,
                     fg_color="#FF5733",
                     command=lambda: generate_vehicle_pdf(full_data)
                 )
-                pdf_btn.pack(side="bottom", padx=10)
+                pdf_btn.pack(side="left")
                 
                 next_btn = ctk.CTkButton(
                     btn_frame, 
-                    text="Next ►",width=80,
+                    text="Suivant ►",width=80,
                     fg_color="#534AE1" if current_index < len(all_items)-1 else "gray30",
                     command=lambda: navigate(1),
                     state="normal" if current_index < len(all_items)-1 else "disabled"
                 )
-                next_btn.pack(side="right", padx=10)
+                next_btn.pack(side="left")
                 
                 # Update treeview selection
                 tree.selection_set(all_items[current_index])
@@ -922,6 +926,7 @@ class MainPage(ctk.CTkFrame):
     style="Treeview",
     selectmode="extended"
     )
+        self.tree=tree
         sort_direction = {
         "col1": None,
         "col2": None, 
@@ -1025,7 +1030,8 @@ class MainPage(ctk.CTkFrame):
         
         self.add_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Ajouter",image=self.add_icon,fg_color="#534ae1",corner_radius=30,compound="left",command=lambda: start_add_mode(tree, tab, ))
         self.add_button.grid(row=0, column=1, padx=10, pady=10,sticky="e")
-        
+        if self.user_role == "technicien":
+            self.add_button.configure(state="disabled", fg_color="gray")
         self.export_button = ctk.CTkButton(
                 self.buttons_frame,
                 text="Export to Excel",

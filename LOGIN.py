@@ -9,7 +9,7 @@ import logging
 import json
 import tkinter as tk
 from tkinter import BOTH# Import tkinter for styling messagebox
-
+from main import MainPage
 
 class CustomMessageBox:  # Keep this class for consistent styling
     @staticmethod
@@ -54,7 +54,7 @@ class DatabaseManager:
         except FileNotFoundError:
             return {
                 "server": "WIN-1QQFTLB3RC8",
-                "database": "partes_store",
+                "database": "gestion_de_fllote",
                 "trusted_connection": "yes"
             }
 
@@ -83,9 +83,10 @@ class LoginForm(ctk.CTk):
         self.title("Modern Login")
         self.geometry("400x600")
         #self.overrideredirect(1)
-        self.wm_attributes("-transparentcolor", "grey")
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
+        #self.wm_attributes("-transparentcolor", "transparent")
+        self.configure(fg_color="#08090b")
+        #ctk.set_appearance_mode("dark")
+        #ctk.set_default_color_theme("blue")
         
         
         
@@ -94,9 +95,6 @@ class LoginForm(ctk.CTk):
         
         self._create_widgets()
         self._create_layout()
-        self.background = self.load_icon("Image_Assets/background.jpg", size=(400, 600))
-        frame_label = ctk.CTkLabel(self,bg_color='grey',text='',image=self.background)
-        frame_label.pack(fill=BOTH,expand=True)
         
     def load_icon(self, path, size):
             """Load and resize an icon."""
@@ -105,15 +103,14 @@ class LoginForm(ctk.CTk):
             return ctk.CTkImage(img_resized, size=size)
     def _create_widgets(self):
         # Main frame
-        #self.main_frame = ctk.CTkFrame(self, fg_color="transparent",bg_color="transparent",corner_radius =30)
-        self.main_frame = ctk.CTkLabel(self, fg_color="transparent", text="", bg_color="transparent")
-
+        self.main_frame = ctk.CTkFrame(self, fg_color="#08090b",bg_color="#08090b",corner_radius =30)
+        
         # Welcome text
         self.welcome_label = ctk.CTkLabel(
             self.main_frame,
             text="Bienvenue",
             font=("Host grotesk", 40, "bold"),
-            text_color="white",fg_color="transparent"
+            text_color="white"
         )
         
         
@@ -121,7 +118,7 @@ class LoginForm(ctk.CTk):
            self.main_frame,
            text="Nom Utilisateur :",
            font=("poppins", 17),
-           anchor="w",fg_color="transparent"
+           anchor="w" 
         )
 
         # Email entry
@@ -132,7 +129,7 @@ class LoginForm(ctk.CTk):
             width=300,
             height=50,
             border_width=2,
-            corner_radius=10,fg_color="transparent"
+            corner_radius=10
         )
         self.username_entry.bind('<FocusIn>', lambda e: self.username_entry.configure(border_color="#561B8D"))
         self.username_entry.bind('<FocusOut>', lambda e: self.username_entry.configure(border_color=""))
@@ -141,7 +138,7 @@ class LoginForm(ctk.CTk):
         self.main_frame,
         text="Mot de passe :",
         font=("poppins", 17),
-        anchor="w",fg_color="transparent"
+        anchor="w"
         )
         # Password entry
         self.password_entry = ctk.CTkEntry(
@@ -152,7 +149,7 @@ class LoginForm(ctk.CTk):
             height=50,
             border_width=2,
             corner_radius=10,
-            show="•",fg_color="transparent"
+            show="•"
         )
         self.password_entry.bind('<FocusIn>', lambda e: self.password_entry.configure(border_color="#561B8D"))
         self.password_entry.bind('<FocusOut>', lambda e: self.password_entry.configure(border_color=""))
@@ -176,7 +173,7 @@ class LoginForm(ctk.CTk):
             width=300,
             height=50,
             corner_radius=10,
-            command=self._on_login,fg_color="transparent"
+            command=self._on_login
         )
 
         
@@ -223,20 +220,20 @@ class LoginForm(ctk.CTk):
         try:
            with self.db.connection.cursor() as cursor:
             # First check if user exists
-            cursor.execute("SELECT COUNT(*) FROM users WHERE username = ?", (user,))
-            user_exists = cursor.fetchone()[0]
+            cursor.execute("SELECT password_v, role,full_name FROM utilisateurs WHERE username = ?", (user,))
+            user_data = cursor.fetchone()
             
-            if not user_exists:
+            if user_data is None:
                 CustomMessageBox.show_error("Login Failed", "L'utilisateur n'existe pas.")
                 self.username_entry.configure(border_color="red")
                 return
 
             # If user exists, then check password
-            cursor.execute("SELECT password_v FROM users WHERE username = ?", (user,))
-            stored_password = cursor.fetchone()[0]
+            stored_password, user_role, full_name = user_data
 
             if stored_password == password:
-                self._handle_successful_login(user)
+                self._handle_successful_login(user,full_name,user_role)
+                
             else:
                 CustomMessageBox.show_error("Login Failed", "Mot de passe incorrect.")
                 self.password_entry.configure(border_color="red")
@@ -265,21 +262,26 @@ class LoginForm(ctk.CTk):
        
     
 
-    def _handle_successful_login(self, user: str):
+    def _handle_successful_login(self, user: str,full_name :str,user_role :str):
         # Update last login timestamp
         with self.db.connection.cursor() as cursor:
             cursor.execute(
-                "UPDATE users SET last_login = GETDATE() WHERE username = ?",
+                "UPDATE utilisateurs SET last_login = GETDATE() WHERE username = ?",
                 (user ,)
             )
             self.db.connection.commit()
+        CustomMessageBox.show_info("Succès", f"Bienvenue, {full_name}")
             
-        # TODO: Implement remember me functionality
-        if self.remember_var.get():
-            pass
+        # Destroy the login window
+        self.destroy()
+        
+        # Create and show the main application window
+        main_app = MainPage()
+        main_app.user_role = user_role
+        main_app.full_name = full_name
+        main_app.mainloop()
             
-        # Navigate to main application
-        self.destroy()  # For this example, just close the window
+        
 
     def _handle_failed_login(self):
         # Show error message to user
