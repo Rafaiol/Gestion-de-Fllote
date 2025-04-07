@@ -8,6 +8,7 @@ import os
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
+from typing import Optional, Dict
 
 ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
 ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
@@ -22,7 +23,7 @@ class MainPage(ctk.CTkFrame):
         super().__init__(master, **kwargs)
         self.user_role = user_role
         self.pack(fill="both", expand=True)
-        
+        self.highlighted_rows: Dict[str, str] = {}
         self.existing_button_frames = {}
         
         self.add_icon = self.load_icon("Image_Assets/Addition.png", size=(25, 25))
@@ -784,7 +785,17 @@ class MainPage(ctk.CTkFrame):
                 if 'connection' in locals():
                     connection.close()
 
-            
+        def highlight_oil_row(self, oil_id):
+            """Highlight a specific oil change entry"""
+            for item in self.tree.get_children():
+                values = self.tree.item(item)['values']
+                if values and str(values[0]) == str(oil_id):  # Check if this is the row we want
+                    self.tree.selection_set(item)  # Select it
+                    self.tree.focus(item)         # Focus on it
+                    self.tree.see(item)           # Scroll to it
+                    self.tree.item(item, tags=("highlighted",))  # Style it
+                    return True
+            return False    
         tab = "courroie_moteur"
         # Style
         style = ttk.Style()
@@ -796,7 +807,10 @@ class MainPage(ctk.CTkFrame):
     font=('Poppins', 14, 'bold'),
     padding=5)
         
-        
+        style.configure("Highlighted.Treeview",
+                      foreground="#ff0000",  # Red text
+                        # Dark background
+                      font=('Poppins', 12, 'bold'))
         # Add alternating row colors
         style.map("Treeview", 
         background=[('selected', '#455e88')],  # Blue background when selected

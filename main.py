@@ -37,12 +37,13 @@ class MainPage(ctk.CTk):
         self.Interventions_icon = self.load_icon("Image_Assets/service-de-reparation.png", size=(25, 25))
         self.Historique_Rep_icon = self.load_icon("Image_Assets/reparation-automobile.png", size=(25, 25))
         self.Utilisateur_icon = self.load_icon("Image_Assets/utilisateur.png", size=(25, 25))
+        self.Utilisateur2_icon = self.load_icon("Image_Assets/utilisateur2.png", size=(30, 30))
         self.Rapports_icon = self.load_icon("Image_Assets/fichier-texte.png", size=(25, 25))
         self.close_icon = self.load_icon("Image_Assets/Close.ico", size=(25, 25))
         self.notification_icon = self.load_icon("Image_Assets/notification.png", size=(20, 20))
         self.notification_click_icon = self.load_icon("Image_Assets/notification_clicked.png", size=(20, 20))
 
-        self.notification_frame = ctk.CTkFrame(self,height=35,fg_color="#08090b")
+        self.notification_frame = ctk.CTkFrame(self,height=45,fg_color="#08090b")
         self.notification_frame.pack(side="top" ,fill="x")
         self.notification_frame.pack_propagate(False)  # Prevents the frame from expanding
         
@@ -77,7 +78,10 @@ class MainPage(ctk.CTk):
             command=self.show_notifications, fg_color="transparent",
             font=("Arial", 12, "bold")
         )
-        self.notification_btn.pack(side="right",padx=10,pady=5)
+        self.full_name_btn = ctk.CTkButton(self.notification_frame,text=self.full_name,image = self.Utilisateur2_icon,compound="left",width=180,height=30,corner_radius=5,fg_color="transparent",font=("poppins",16,"bold"))
+        self.full_name_btn.pack(side="right",pady=5)
+        self.notification_btn.pack(side="right",pady=5)
+        
         # Add this line to check notifications when the app starts
         self.check_notifications()
         
@@ -185,7 +189,7 @@ class MainPage(ctk.CTk):
         screen_height = self.winfo_screenheight()
         
         # Final position (right edge, centered vertically)
-        target_x = self.notification_btn.winfo_rootx()-435  # 20px from right edge
+        target_x = self.notification_btn.winfo_rootx()-433  # 20px from right edge
         target_y = self.notification_btn.winfo_rooty() + self.notification_btn.winfo_height()-25  # Vertical center
         
         # Start position (fully off-screen right)

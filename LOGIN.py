@@ -276,9 +276,8 @@ class LoginForm(ctk.CTk):
         self.destroy()
         
         # Create and show the main application window
-        main_app = MainPage()
-        main_app.user_role = user_role
-        main_app.full_name = full_name
+        main_app = MainPage(user_role = user_role, full_name = full_name)
+        
         main_app.mainloop()
             
         
