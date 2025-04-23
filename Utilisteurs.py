@@ -76,7 +76,7 @@ class MainPage(ctk.CTkFrame):
             popup = ctk.CTkToplevel()
             popup.title("Add New Record")
             popup.overrideredirect(True)
-            popup.geometry("700x450")
+            popup.geometry("600x300")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
             popup.grab_set()  # Make popup modal
@@ -114,7 +114,7 @@ class MainPage(ctk.CTkFrame):
                 entry = ctk.CTkEntry(field_frame, font=("Helvetica", 13),placeholder_text=field, width=220,border_color="", height=40)
                 entry.pack(fill="x")
                 if field == "Role":
-                    entry.configure(text="Technicien")
+                    entry.insert(0, "Technicien")
                 entries.append(entry)
                    
             
@@ -238,7 +238,7 @@ class MainPage(ctk.CTkFrame):
                     full_name LIKE ? OR 
                     username LIKE ? OR 
                     password_v LIKE ? OR 
-                    v,role LIKE ? '''
+                    role LIKE ? '''
             params = (f"%{value}%",) * 5
             fetch_data(tree, query, params)
             
@@ -307,7 +307,7 @@ class MainPage(ctk.CTkFrame):
                 messagebox.showwarning("Warning", "Please fill all fields")
                 return
 
-            query = f"UPDATE {tab} SET  full_name = ?, username = ?,password_v = ?,role = ?"
+            query = f"UPDATE {tab} SET  full_name = ?, username = ?,password_v = ?,role = ? WHERE id = ?"
             try:
                 connection = get_connection()
                 cursor = connection.cursor()
@@ -330,7 +330,7 @@ class MainPage(ctk.CTkFrame):
             query = """SELECT full_name, username, password_v,role 
                     FROM utilisateurs
                     
-                    WHERE utilisateurs = ?"""
+                    WHERE id = ?"""
             
             try:
                 connection = get_connection()
@@ -347,7 +347,7 @@ class MainPage(ctk.CTkFrame):
             # Create popup window
             popup = ctk.CTkToplevel()
             popup.title("Update Record")
-            popup.geometry("600x450")
+            popup.geometry("600x300")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
             popup.grab_set()  # Make popup modal

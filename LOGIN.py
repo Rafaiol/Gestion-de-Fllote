@@ -9,7 +9,7 @@ import logging
 import json
 import tkinter as tk
 from tkinter import BOTH# Import tkinter for styling messagebox
-from main import MainPage
+
 
 class CustomMessageBox:  # Keep this class for consistent styling
     @staticmethod
@@ -82,9 +82,9 @@ class LoginForm(ctk.CTk):
         # Configure window and theme
         self.title("Modern Login")
         self.geometry("400x600")
-        #self.overrideredirect(1)
-        #self.wm_attributes("-transparentcolor", "transparent")
+        
         self.configure(fg_color="#08090b")
+        
         #ctk.set_appearance_mode("dark")
         #ctk.set_default_color_theme("blue")
         
@@ -97,19 +97,21 @@ class LoginForm(ctk.CTk):
         self._create_layout()
         
     def load_icon(self, path, size):
-            """Load and resize an icon."""
             img = Image.open(path)
-            img_resized = img.resize(size, Image.Resampling.LANCZOS)
-            return ctk.CTkImage(img_resized, size=size)
+            return ctk.CTkImage(dark_image=img, size=size)
+            
     def _create_widgets(self):
+        self.logo_icon = self.load_icon("Image_Assets/Logo.png", size=(180, 180))
+        self.logo_label=ctk.CTkLabel(self,text="",image=self.logo_icon )
         # Main frame
         self.main_frame = ctk.CTkFrame(self, fg_color="#08090b",bg_color="#08090b",corner_radius =30)
+        
         
         # Welcome text
         self.welcome_label = ctk.CTkLabel(
             self.main_frame,
             text="Bienvenue",
-            font=("Host grotesk", 40, "bold"),
+            font=("Host grotesk", 30, "bold"),
             text_color="white"
         )
         
@@ -129,9 +131,9 @@ class LoginForm(ctk.CTk):
             width=300,
             height=50,
             border_width=2,
-            corner_radius=10
+            corner_radius=10,border_color=""
         )
-        self.username_entry.bind('<FocusIn>', lambda e: self.username_entry.configure(border_color="#561B8D"))
+        self.username_entry.bind('<FocusIn>', lambda e: self.username_entry.configure(border_color="#534AE1"))
         self.username_entry.bind('<FocusOut>', lambda e: self.username_entry.configure(border_color=""))
         
         self.password_label = ctk.CTkLabel(
@@ -149,19 +151,12 @@ class LoginForm(ctk.CTk):
             height=50,
             border_width=2,
             corner_radius=10,
-            show="•"
+            show="•",border_color=""
         )
-        self.password_entry.bind('<FocusIn>', lambda e: self.password_entry.configure(border_color="#561B8D"))
+        self.password_entry.bind('<FocusIn>', lambda e: self.password_entry.configure(border_color="#534AE1"))
         self.password_entry.bind('<FocusOut>', lambda e: self.password_entry.configure(border_color=""))
         # Remember me checkbox
-        self.remember_var = ctk.BooleanVar()
-        self.remember_check = ctk.CTkCheckBox(
-            self.main_frame,
-            text="Remember me",
-            variable=self.remember_var,
-            font=("Helvetica", 12),
-            corner_radius=6
-        )
+       
 
        
 
@@ -188,22 +183,20 @@ class LoginForm(ctk.CTk):
           command=self._toggle_password_visibility)
 
     def _create_layout(self):
+        self.logo_label.pack(side="top",pady=(20,0))
         # Place main frame
         self.main_frame.pack(expand=True, padx=40, pady=40 )
         
         # Layout widgets with proper spacing
-        self.welcome_label.pack(pady=(0, 30), anchor="w")
+        #self.welcome_label.pack(pady=(0, 30), anchor="w")
         self.email_label.pack(pady=(0, 5), anchor="w")
         self.username_entry.pack(pady=(0, 20))
         self.password_label.pack(pady=(0, 5), anchor="w")
         self.password_entry.pack(pady=(0, 20))
-        self.show_password_check.pack(pady=(0, 20), anchor="w")  # Added anchor="w" here
+        self.show_password_check.pack(pady=(0, 10), anchor="w")  # Added anchor="w" here
         
         # Create a frame for remember me and forgot password
-        options_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        options_frame.pack(fill="x", pady=(0, 30))
         
-        self.remember_check.pack(side="left", in_=options_frame)
       
         
         self.login_button.pack(pady=(0, 20))
@@ -274,7 +267,7 @@ class LoginForm(ctk.CTk):
             
         # Destroy the login window
         self.destroy()
-        
+        from main import MainPage
         # Create and show the main application window
         main_app = MainPage(user_role = user_role, full_name = full_name)
         

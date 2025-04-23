@@ -6,13 +6,15 @@ from Liquide_de_frein import MainPage as Liquide_de_freinPage
 from Huile_Moteur import MainPage as Huile_MoteurPage
 from Chaine_de_distrubution import MainPage as Chaine_MoteurPage
 from Courroie_Moteur import MainPage as Courroie_MoteurPage
+from Battery import MainPage as batterypage
 from Historique_Reparation import MainPage as ReparationPage
 from Utilisteurs import MainPage as UtilisteursPage
 import pyodbc
 import datetime
 from tkinter import ttk
 import tkinter as tk
-
+import pywinstyles
+from hPyT import *
 
 # Set CustomTkinter Appearance and Theme
 ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
@@ -23,7 +25,8 @@ class MainPage(ctk.CTk):
         super().__init__()
         self.geometry("800x600")
         self.title("Main Page")
-        
+        corner_radius.set(self, style="round-small")
+        #pywinstyles.apply_style(self, "aero")
         self.user_role = user_role
         self.full_name = full_name
         
@@ -33,29 +36,41 @@ class MainPage(ctk.CTk):
         
         self.nav_buttons = {}
         self.menu_icon = self.load_icon("Image_Assets/Menu.png", size=(25, 25))
-        self.car_icon = self.load_icon("Image_Assets/front-car.png", size=(25, 25))
+        self.car_icon = self.load_icon("Image_Assets/car.png", size=(35, 35))
         self.Interventions_icon = self.load_icon("Image_Assets/service-de-reparation.png", size=(25, 25))
-        self.Historique_Rep_icon = self.load_icon("Image_Assets/reparation-automobile.png", size=(25, 25))
+        self.Historique_Rep_icon = self.load_icon("Image_Assets/calendrier.png", size=(25, 25))
         self.Utilisateur_icon = self.load_icon("Image_Assets/utilisateur.png", size=(25, 25))
         self.Utilisateur2_icon = self.load_icon("Image_Assets/utilisateur2.png", size=(30, 30))
         self.Rapports_icon = self.load_icon("Image_Assets/fichier-texte.png", size=(25, 25))
         self.close_icon = self.load_icon("Image_Assets/Close.ico", size=(25, 25))
-        self.notification_icon = self.load_icon("Image_Assets/notification.png", size=(20, 20))
-        self.notification_click_icon = self.load_icon("Image_Assets/notification_clicked.png", size=(20, 20))
-
-        self.notification_frame = ctk.CTkFrame(self,height=45,fg_color="#08090b")
-        self.notification_frame.pack(side="top" ,fill="x")
-        self.notification_frame.pack_propagate(False)  # Prevents the frame from expanding
-        
+        self.notification_icon = self.load_icon("Image_Assets/notification.png", size=(25, 25))
+        self.notification_click_icon = self.load_icon("Image_Assets/notification_full.png", size=(25, 25))
+        self.logo_icon = self.load_icon("Image_Assets/Logo.png", size=(60, 60))
+        self.chaine_icon = self.load_icon("Image_Assets/chaine.png", size=(30, 30))
+        self.huile_icon = self.load_icon("Image_Assets/huile_moteur.png", size=(30, 30))
+        self.frein_icon = self.load_icon("Image_Assets/frein.png", size=(30, 30))
+        self.glaciol_icon = self.load_icon("Image_Assets/glaciol.png", size=(30, 30))
+        self.batterie_icon = self.load_icon("Image_Assets/batterie.png", size=(30, 30))
         # Navigation Menu Frame
         self.menu_frame = ctk.CTkFrame(self, width=150, corner_radius=0,fg_color="#08090b")
         self.menu_frame.pack(side="left", fill="y")
+        self.notification_frame = ctk.CTkFrame(self,height=45,fg_color="#08090b",corner_radius=0)
+        self.notification_frame.pack(side="top" ,fill="x")
+        self.notification_frame.pack_propagate(False)  # Prevents the frame from expanding
+         
 
         # Content Frame
         self.content_frame = ctk.CTkFrame(self, corner_radius=10,fg_color="#050505")
         self.content_frame.pack(side="right", fill="both", expand=True)
+        self.logo_frame = ctk.CTkFrame(self.menu_frame,fg_color="#08090b",corner_radius=0)
+        self.logo_frame.pack(side="top",pady=(0,20))
+        self.logo_label = ctk.CTkLabel(self.logo_frame, text="", image=self.logo_icon)
+        self.logo_label.grid(row=0,column=0,rowspan=2,padx=(0,5))
         
-       
+        self.slogo1_label = ctk.CTkLabel(self.logo_frame, text="ALGERIE",font=("bodoni",18,"bold"),text_color="#3167b0")
+        self.slogo1_label.grid(row=0,column=1,padx=(0,20),pady=(10,0))
+        self.slogo2_label = ctk.CTkLabel(self.logo_frame, text="POSTE",font=("bodoni",18,),text_color="#f4c922")
+        self.slogo2_label.grid(row=1,column=1,padx=(0,20),pady=(0,20))
         
         
 
@@ -72,16 +87,87 @@ class MainPage(ctk.CTk):
 
         # Default Page
         self.show_véhicules_page()
+        def disconnect_user_menu():
+            # If popup exists and is visible, destroy it
+            if hasattr(self, 'user_popup') and self.user_popup and self.user_popup.winfo_exists():
+                self.user_popup.destroy()
+                self.user_popup = None
+                self.unbind("<Button-1>") 
+                return
+                    
+
+            # Create the popup window
+            disconnect_menu_popup = ctk.CTkToplevel(self)
+            disconnect_menu_popup.overrideredirect(True)
+            disconnect_menu_popup.attributes("-topmost", True)
+            disconnect_menu_popup.fg_color = "#2b2b2b"
+            disconnect_menu_popup.configure(corner_radius=10)
+            self.user_popup = disconnect_menu_popup
+            # Position it below the full_name button
+            btn_x = self.full_name_btn.winfo_rootx()
+            btn_y = self.full_name_btn.winfo_rooty()
+            btn_width = self.full_name_btn.winfo_width()
+            btn_height = self.full_name_btn.winfo_height()
+            
+            disconnect_menu_popup.geometry(f"{btn_width}x{50}+{btn_x}+{btn_y + btn_height}")
+            
+            # Add disconnect button
+            disconnect_btn = ctk.CTkButton(
+                disconnect_menu_popup,
+                text="Déconnecter",
+                font=("poppins", 14),
+                fg_color="transparent",
+                hover_color="#c80036",
+                command=disconnect_user,
+                height=40
+            )
+            disconnect_btn.pack(fill="x", padx=5, pady=5)
+            
+            # Close popup when losing focus
+            def check_click_outside(event):
+                
+                # Get mouse position
+                x, y = event.x_root, event.y_root
+
+                # Get popup geometry
+                popup_x = disconnect_menu_popup.winfo_rootx()
+                popup_y = disconnect_menu_popup.winfo_rooty()
+                popup_width = disconnect_menu_popup.winfo_width()
+                popup_height = disconnect_menu_popup.winfo_height()
+
+                # Check if click is outside the popup
+                if not (popup_x <= x <= popup_x + popup_width and popup_y <= y <= popup_y + popup_height):
+                    disconnect_menu_popup.destroy()
+                    self.user_popup = None
+                    self.unbind("<Button-1>")  # Optional: remove the listener after closing
+            
+            self.bind("<Button-1>", check_click_outside)
+    
+            disconnect_menu_popup.bind("<FocusOut>", lambda e: disconnect_menu_popup.destroy())
+
         
         self.notification_btn = ctk.CTkButton(
             self.notification_frame, image=self.notification_icon,text="" ,width=40, height=30, corner_radius=10,
             command=self.show_notifications, fg_color="transparent",
             font=("Arial", 12, "bold")
         )
-        self.full_name_btn = ctk.CTkButton(self.notification_frame,text=self.full_name,image = self.Utilisateur2_icon,compound="left",width=180,height=30,corner_radius=5,fg_color="transparent",font=("poppins",16,"bold"))
+        self.full_name_btn = ctk.CTkButton(self.notification_frame,text=self.full_name,
+                                           image = self.Utilisateur2_icon,compound="left",
+                                           width=180,height=30,corner_radius=15,fg_color="transparent",
+                                           font=("poppins",16,"bold"),
+                                           command=lambda: disconnect_user_menu())
+        
         self.full_name_btn.pack(side="right",pady=5)
         self.notification_btn.pack(side="right",pady=5)
-        
+        self.user_popup = None
+        def disconnect_user():
+            """Handle logout"""
+            if hasattr(self, 'user_popup') and self.user_popup:
+                self.user_popup.destroy()
+            self.destroy()
+            import LOGIN
+            LOGIN.LoginForm().mainloop()
+                
         # Add this line to check notifications when the app starts
         self.check_notifications()
         
@@ -123,11 +209,13 @@ class MainPage(ctk.CTk):
         FROM Vehicule
         WHERE 
              date_assurance <= ? OR 
-             date_control_technique <= ?
+             date_control_technique <= ? OR
+             DATEDIFF(DAY, ?, date_control_technique) BETWEEN 0 AND 15 OR
+             DATEDIFF(DAY, ?, date_control_technique) BETWEEN 0 AND 15
         """
         try:
             cursor = connection.cursor()
-            cursor.execute(query_vehicule, (today, today))
+            cursor.execute(query_vehicule, (today, today,today,today))
             results = cursor.fetchall()
             
 
@@ -136,14 +224,25 @@ class MainPage(ctk.CTk):
             today_date = datetime.date.today()
             for row in results:
                 vehicule_id, marque, type_, assurance_date, control_date = row
-                notification_text = f"{marque} {type_}  - "
-                
-                if assurance_date <= today_date:
-                    status = "EXPIRED" if assurance_date < today_date else "Expiring Today"
+                notification_text = f"{marque} {type_}  : \n"
+                délai_ass =assurance_date - today_date  
+                délai_tech =control_date - today_date 
+                print(délai_ass.days)
+                print(délai_tech.days)
+                if 0 < délai_ass.days <=15 :
+                    status = f"Expiré Dans {délai_ass.days} jours"
                     notification_text += f"Assurance {status} "
-                    
-                if control_date <= today_date:
-                    status = "OVERDUE" if control_date < today_date else "Due Today"
+                    print(délai_ass.days)
+                elif assurance_date <= today_date:
+                    status = "Expiré" if assurance_date < today_date else "Expiré Aujourd'hui"
+                    notification_text += f"Assurance {status} "
+                   
+                if  0< délai_tech.days <=15 :
+                    status = f"Due dans {délai_tech.days} jours"
+                    notification_text += f"| Control Technique {status}"
+                    print(délai_tech.days)
+                elif control_date <= today_date:
+                    status = "En retard" if control_date < today_date else "Due Aujourd'hui"
                     notification_text += f"| Control Technique {status}"
                 
                 self.notifications.append(("vehicle",vehicule_id, notification_text))
@@ -177,11 +276,11 @@ class MainPage(ctk.CTk):
 
         # Create a small popup window
         self.notification_popup = ctk.CTkToplevel(self)
-          
+        
+       
         self.notification_popup.overrideredirect(True)
         self.notification_popup.attributes("-topmost", True)
         self.notification_popup.fg_color = ("#2b2b2b", "#2b2b2b")
-        self.notification_popup.configure(corner_radius=15)   
         
         window_width = 450  # Adjust to match your notification size
         window_height = 600
@@ -189,8 +288,8 @@ class MainPage(ctk.CTk):
         screen_height = self.winfo_screenheight()
         
         # Final position (right edge, centered vertically)
-        target_x = self.notification_btn.winfo_rootx()-433  # 20px from right edge
-        target_y = self.notification_btn.winfo_rooty() + self.notification_btn.winfo_height()-25  # Vertical center
+        target_x = self.notification_btn.winfo_rootx()-200 # 20px from right edge
+        target_y = self.notification_btn.winfo_rooty() + self.notification_btn.winfo_height()+40  # Vertical center
         
         # Start position (fully off-screen right)
         current_x = screen_width -85
@@ -218,7 +317,7 @@ class MainPage(ctk.CTk):
         
         self.notification_popup.focus_set()
         # Create a scrollable frame
-        frame = ctk.CTkFrame(self.notification_popup,fg_color="#333333",corner_radius=30
+        frame = ctk.CTkFrame(self.notification_popup,fg_color="#333333",corner_radius=12
         )
         frame.pack(fill="both", expand=True, padx=5, pady=5)
 
@@ -229,7 +328,7 @@ class MainPage(ctk.CTk):
         
         
         #scrollbar = ctk.CTkScrollbar(frame, orientation="vertical", command=canvas.yview)
-        scrollable_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        scrollable_frame = ctk.CTkFrame(frame, fg_color="transparent",corner_radius=15)
         scrollable_frame.pack(side="left", fill="both", expand=True)
         self.notification_popup.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
         self.notification_popup.attributes("-alpha", 0.01)
@@ -283,10 +382,10 @@ class MainPage(ctk.CTk):
         # Populate notifications
         for notif_type, id_value, text in self.notifications:
             notif_btn = ctk.CTkButton(
-                scrollable_frame, text=text, font=("poppins", 12),
+                scrollable_frame, text=text, font=("poppins", 12,"bold"),
                 fg_color="transparent", hover_color="#555555",
                 corner_radius=5, command=lambda t=notif_type, i=id_value: [self.go_to_vehicle(t, i), remove_notification((t, i))],
-                anchor="w", width=220,height=50
+                anchor="center", width=220,height=50
             )
             notif_btn.pack(fill="x", pady=2, padx=5)
 
@@ -409,7 +508,8 @@ class MainPage(ctk.CTk):
                 # Configure tags
                 tree.tag_configure("highlighted", foreground="#c80036", background="#333333", font=('poppins', 12, "bold"))
                 tree.tag_configure("normalrow", foreground="#b3b3b3", background="#333333")
-
+                if not hasattr(self, "highlighted_huile_rows"):
+                    self.highlighted_huile_rows = {}
                 # Find and highlight the row
                 for item in tree.get_children():
                     values = tree.item(item)['values']
@@ -419,6 +519,7 @@ class MainPage(ctk.CTk):
                         tree.see(item)
                         tree.item(item, tags=("highlighted",))
                         self.highlighted_huile_row = item
+                        self.highlighted_huile_rows[id_value] = item
                         
                         # Update index_veh_old in database
                         connection = self.get_connection()
@@ -441,10 +542,8 @@ class MainPage(ctk.CTk):
                 print(f"Error highlighting {vehicule_id}: {str(e)}")
                 del self.highlighted_rows[vehicule_id]
     def load_icon(self, path, size):
-        """Load and resize an icon."""
         img = Image.open(path)
-        img_resized = img.resize(size, Image.Resampling.LANCZOS)
-        return ImageTk.PhotoImage(img_resized)
+        return ctk.CTkImage(dark_image=img, size=size)
 
     def add_nav_button(self,key, text, icon, command):
         """Create a navigation button."""
@@ -463,8 +562,10 @@ class MainPage(ctk.CTk):
             font=("Helvetica", 14, "bold"),
         )
         
-        button.pack(fill="x", pady=10, padx=10)
+        button.pack(fill="x" ,pady=10, padx=10)
         self.nav_buttons[key] = button
+        
+    
     def set_active_button(self,key):
         # Reset all buttons to default color
         for btn in self.nav_buttons.values():
@@ -515,33 +616,42 @@ class MainPage(ctk.CTk):
                 Huile_frame.pack(fill="both", expand=True)
             elif tab_name == "Chaine de Distribution":
                 Chaine_frame.pack(fill="both", expand=True)
+                
             elif tab_name == "Courroie Moteur":
                 Courroie_frame.pack(fill="both", expand=True)
             elif tab_name == "Glaciol":
                 glaciol_frame.pack(fill="both", expand=True)
             elif tab_name == "Liquide de Frein":
                 Liquide_frame.pack(fill="both", expand=True)
+            elif tab_name == "battery":
+                battery_frame.pack(fill="both", expand=True)
 
         # Create tab buttons
-        tab_names = ["Huile Moteur", "Chaine de Distribution", "Courroie Moteur", "Glaciol", "Liquide de Frein"]
-        for name in tab_names:
-            button = ctk.CTkButton(
-                tab_button_frame,
-                text=name,
-                height=30,
-                font=("poppins", 14),  # Custom font
-                fg_color="#2b2b2b",  # Background color
-                hover_color="#534AE1",  # Hover color
-                command=lambda n=name: switch_tab(n),  # Switch to the selected tab
-            )
-            button.pack(side="left", padx=5, pady=5)
-            tab_buttons[name] = button
+        tab_names = ["Huile Moteur", "Chaine de Distribution", "Courroie Moteur", "Glaciol", "Liquide de Frein","battery"]
+        tab_icons = [self.huile_icon,self.chaine_icon,None,self.glaciol_icon,self.frein_icon,self.batterie_icon]
+        for name,image in zip(tab_names , tab_icons):
+            
+                button = ctk.CTkButton(
+                    tab_button_frame,
+                    text=name,
+                    height=30,
+                    width=150,
+                    image=image,
+                    font=("poppins", 14),  # Custom font
+                    fg_color="#2b2b2b",  # Background color
+                    hover_color="#534AE1",  # Hover color
+                    compound="left",
+                    command=lambda n=name: switch_tab(n),  # Switch to the selected tab
+                )
+                button.pack(side="left", padx=5, pady=5)
+                tab_buttons[name] = button
         # Create frames for each tab
         glaciol_frame = GlaciolPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
         Liquide_frame = Liquide_de_freinPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
         Huile_frame = Huile_MoteurPage(master=tab_content_frame,user_role=self.user_role , fg_color="#050505")
         Chaine_frame = Chaine_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
         Courroie_frame = Courroie_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
+        battery_frame = batterypage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
 
         # Show the first tab by default
         switch_tab("Huile Moteur")

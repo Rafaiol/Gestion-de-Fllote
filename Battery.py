@@ -10,7 +10,6 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.styles.borders import Border, Side
-
 ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
 ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
@@ -104,7 +103,7 @@ class MainPage(ctk.CTkFrame):
             popup = ctk.CTkToplevel()
             popup.title("Add New Record")
             popup.overrideredirect(True)
-            popup.geometry("600x550")
+            popup.geometry("700x450")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
             popup.grab_set()  # Make popup modal
@@ -121,11 +120,10 @@ class MainPage(ctk.CTkFrame):
             # Get vehicle data
             
             # Fields and entries
-            fields = [ "Type","Marque", "Immatriculation", "Date de Changement","Désignation","Index"  ,"Num Facture","Nom Fournisseur","Technicien"]
+            fields = [ "Type:","Marque", "Immatriculation", "Date de Changement ", "Réference" ,"Num Facture","Nom Fournisseur","Technicien"]
             entries = []
             vehicle_names, vehicle_data = get_vehicles()
             
-            desg_fields=["vidange moteur","suppliment"]
             
             # Create entries with improved layout
             for i,field in enumerate(fields):
@@ -135,10 +133,10 @@ class MainPage(ctk.CTkFrame):
                 # Container frame for each field
                 field_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
                 field_frame.grid(row=row, column=col, padx=10, pady=5, sticky="nsew")
-                label = ctk.CTkLabel(field_frame, text=field + ":", font=("poppins", 16))
+                label = ctk.CTkLabel(field_frame, text=field + ":", font=("Helvetica", 18))
                 label.pack(anchor="w", pady=(0, 2))
                 
-                if field == "Type":
+                if field == "Type:":
                     type_combo = ctk.CTkComboBox(field_frame,
                                         values=vehicle_names,
                                         font=("poppins", 13),
@@ -152,10 +150,11 @@ class MainPage(ctk.CTkFrame):
                     type_combo.pack(fill="x")
                     entries.append(type_combo)
                     type_combo.bind('<FocusIn>', lambda : type_combo.configure(border_color="#561B8D"))
-                
+                    
+                    
                     
                 else:
-                    entry = ctk.CTkEntry(field_frame, font=("ppopins", 13),placeholder_text=field, width=220,border_color="", height=40)
+                    entry = ctk.CTkEntry(field_frame, font=("Helvetica", 13),placeholder_text=field, width=220,border_color="", height=40)
                     entry.pack(fill="x")
                     entry.configure(state="readonly")
                     entries.append(entry)
@@ -163,43 +162,36 @@ class MainPage(ctk.CTkFrame):
                         entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
                         entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
                         entry.configure(state="normal")
-                
             
             
             
 
             # Button frame
             button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-            button_frame.grid(row=7, column=0, columnspan=2, pady=20, sticky="e")
+            button_frame.grid(row=5, column=0, columnspan=2, pady=20, sticky="e")
 
             def save_record(): 
                 vehicule_id = on_vehicule_select(type_combo.get())
                 
                 
-                values = [vehicule_id,entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip(),entries[8].get().strip()]
+                values = [vehicule_id,entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip()]
                 
-                if any(value == '' for value in values[1:4]):
+                if any(value == '' for value in [values[1], values[2]]):
                     messagebox.showerror("Error", "Please fill all fields")
                     return
-                for idx, e in enumerate(entries):
-                    print(f"{idx}: {e.get()}")
-                print(values[1])
-                query1 = "INSERT INTO courroie_moteur (vehicule_id,date_courroie,Désignation,Index_veh,Index_veh_old,Num_facture,nom_fournisseur,Technicien) VALUES (?, convert(date,?), ?, ?, ?, ?, ?, ?)"
                 
+                query = "INSERT INTO battery (vehicule_id,date_battery, marque_battery,Num_facture,nom_fournisseur,Technicien) VALUES (?, ?, ?, ?, ?, ?)"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
-                    cursor.execute(query1, values)
-                    #cursor.execute(query2, values[5])
+                    cursor.execute(query, values)
                     connection.commit()
                     fetch_all_data(tree, tab)
-                    connection.close()
                     messagebox.showinfo("Success", "Record added successfully")
                     popup.destroy()
                 except pyodbc.Error as e:
                     messagebox.showerror("Database Error", f"Failed to add record:{str(e)}")
-                
-                
+
             # Create buttons
             ctk.CTkButton(button_frame, text="Cancel", width=100, height=30, command=popup.destroy).pack(side="right", padx=5)
             ctk.CTkButton(button_frame, text="Clear", width=100, height=30, command=lambda: [entry.delete(0, 'end') for entry in entries]).pack(side="right", padx=5)
@@ -287,18 +279,16 @@ class MainPage(ctk.CTkFrame):
                 
             
             value = self.search_entry.get()
-            query = f'''SELECT  M.num_courroie,v.marque, v.type, v.Immatriculation,M.date_courroie,M.Désignation,M.Index_veh  
+            query = f'''SELECT  b.battery_id,v.marque, v.type, v.Immatriculation,b.date_battery,b.marque_battery  
                     FROM Vehicule v
-                    INNER JOIN courroie_moteur M ON v.vehicule_id = M.vehicule_id WHERE 
-                    M.num_courroie LIKE ? OR 
+                    INNER JOIN battery b ON v.vehicule_id = b.vehicule_id WHERE 
+                    b.battery_id LIKE ? OR 
                     v.marque LIKE ? OR 
                     v.type LIKE ? OR 
                     v.Immatriculation LIKE ? OR 
-                    M.date_courroie LIKE ? OR
-                    M.Désignation LIKE ? OR
-                    M.Index_veh LIKE ? 
-                    '''
-            params = (f"%{value}%",) * 7
+                    b.date_battery LIKE ? OR 
+                    b.marque_battery LIKE ?'''
+            params = (f"%{value}%",) * 6 
             fetch_data(tree, query, params)
             
         def filter_window(tree,*args):
@@ -445,9 +435,9 @@ class MainPage(ctk.CTkFrame):
                 print("Please enter a table name.")
                 return
             query = """
-                SELECT  M.num_courroie, v.marque, v.type, v.Immatriculation,M.date_courroie,M.Désignation,M.Index_veh
+                SELECT  b.battery_id, v.marque, v.type, v.Immatriculation,b.date_battery,b.marque_battery 
                         FROM Vehicule v
-                        INNER JOIN courroie_moteur M ON v.vehicule_id = M.vehicule_id
+                        INNER JOIN battery b ON v.vehicule_id = b.vehicule_id
                 """
             fetch_data(tree, query)
 
@@ -469,7 +459,7 @@ class MainPage(ctk.CTkFrame):
                 current_values = tree.item(row_id)['values']
                 
                 record_id = current_values[0]  # Assuming first column is ID
-                cursor.execute(f"DELETE FROM {tab} WHERE num_courroie = ?", (record_id,))
+                cursor.execute(f"DELETE FROM {tab} WHERE battery_id = ?", (record_id,))
                 
                 # Remove associated button frame
                 if record_id in self.existing_button_frames:
@@ -495,12 +485,12 @@ class MainPage(ctk.CTkFrame):
                 return
 
             record_id = item_values[0]  # Assuming the first column is the unique ID
-            new_values = [entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip(),entries[8].get().strip(),entries[9].get().strip(),entries[10].get().strip()]
+            new_values = [entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip()]
             if any(value == '' for value in new_values):
                 messagebox.showwarning("Warning", "Please fill all fields")
                 return
 
-            query = f"UPDATE {tab} SET  date_courroie = ?,Désignation = ?,Index_veh = ?,Num_facture = ?,nom_fournisseur = ?,Technicien = ? WHERE num_courroie = ?"
+            query = f"UPDATE {tab} SET  date_battery = ?, marque_battery = ?,Num_facture = ?,nom_fournisseur = ?,Technicien = ? WHERE battery_id = ?"
             try:
                 connection = get_connection()
                 cursor = connection.cursor()
@@ -520,12 +510,11 @@ class MainPage(ctk.CTkFrame):
             current_values = tree.item(row_id)['values']
             glac_num = current_values[0]
             # Fetch complete data using existing pattern
-            query = """SELECT v.marque, v.type, v.Immatriculation,M.date_courroie,
-                        M.Désignation,M.Index_veh,M.Num_facture,
-                        M.nom_fournisseur,M.Technicien  
-                        FROM Vehicule v
-                        INNER JOIN courroie_moteur M ON v.vehicule_id = M.vehicule_id
-                    WHERE M.num_courroie = ?"""
+            query = """SELECT v.marque, v.type, v.Immatriculation, b.date_battery, b.marque_battery, 
+                            b.Num_facture, b.nom_fournisseur,b.Technicien
+                    FROM battery b
+                    INNER JOIN Vehicule v ON b.vehicule_id = v.vehicule_id
+                    WHERE b.battery_id = ?"""
             
             try:
                 connection = get_connection()
@@ -542,7 +531,7 @@ class MainPage(ctk.CTkFrame):
             # Create popup window
             popup = ctk.CTkToplevel()
             popup.title("Update Record")
-            popup.geometry("600x500")
+            popup.geometry("600x450")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
             popup.grab_set()  # Make popup modal
@@ -557,9 +546,7 @@ class MainPage(ctk.CTkFrame):
             main_frame.grid_rowconfigure(4, weight=1)
 
             # Fields and entries
-            fields = ["Marque", "Type", "Immatriculation", "Date de Changement","Désignation","Index","Num Facture","Nom Fournisseur","Technicien"]
-            
-            desg_fields=["vidange moteur","suppliment"]
+            fields = ["Marque", "Type", "Immatriculation", "Date de changement", "Réference","Num Facture","Nom Fournisseur","Technicien"]
             entries = []
 
             # Create entries with improved layout
@@ -571,12 +558,12 @@ class MainPage(ctk.CTkFrame):
                 field_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
                 field_frame.grid(row=row, column=col, padx=10, pady=5, sticky="nsew")
                 
-                label = ctk.CTkLabel(field_frame, text=field + ":", font=("poppins", 16))
+                label = ctk.CTkLabel(field_frame, text=field + ":", font=("poppins", 18))
                 label.pack(anchor="w", pady=(0, 2))
-                
                 
                 entry = ctk.CTkEntry(field_frame,placeholder_text=field,border_color="", font=("poppins", 13), width=220,height=40)
                 entry.pack(fill="x")
+                
                 entries.append(entry)
                 if not fields[i] in ["Marque","Type", "Immatriculation"]:
                     entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
@@ -584,8 +571,6 @@ class MainPage(ctk.CTkFrame):
                     entry.configure(state="readonly")
             # Populate entries with current values
             for entry, value in zip(entries, full_data):
-                if isinstance(entry, ctk.CTkComboBox):
-                    continue
                 entry.configure(state="normal")
                 entry.delete(0, 'end')
                 entry.insert(0, str(value))
@@ -594,7 +579,7 @@ class MainPage(ctk.CTkFrame):
 
             # Button frame at bottom right
             button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-            button_frame.grid(row=7, column=0, columnspan=2, padx=10, pady=10, sticky="e")
+            button_frame.grid(row=6, column=0, columnspan=2, padx=10, pady=10, sticky="e")
 
             def confirm_update():
                 update_selected(tree, tab, entries,row_id)
@@ -627,6 +612,27 @@ class MainPage(ctk.CTkFrame):
             y = (self.winfo_screenheight() - popup.winfo_height()) // 2
             popup.geometry(f"+{x}+{y}")
         def show_inspect_window(self, tree, row_id):
+            current_values = tree.item(row_id)['values']
+            glac_num = current_values[0]  # Get the glaciol number
+
+            # Fetch complete data including new fields
+            try:
+                connection = get_connection()
+                cursor = connection.cursor()
+                cursor.execute("""
+                    SELECT b.battery_id, v.marque, v.type, v.Immatriculation, 
+                        b.date_battery, b.marque_battery, b.Num_facture, b.nom_fournisseur,b.Technicien
+                    FROM battery b
+                    INNER JOIN Vehicule v ON b.vehicule_id = v.vehicule_id
+                    WHERE b.battery_id = ?
+                """, (glac_num,))
+                full_data = cursor.fetchone()
+            except pyodbc.Error as e:
+                messagebox.showerror("Database Error", f"Failed to fetch details: {str(e)}")
+                return
+            finally:
+                if connection:
+                    connection.close()
             # Get all items and current index
             all_items = tree.get_children()
             current_index = all_items.index(row_id) 
@@ -682,18 +688,17 @@ class MainPage(ctk.CTkFrame):
                 if not item_values:
                     return
             
-                courroie_id = item_values[0]
+                battery_id = item_values[0]
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
                     cursor.execute("""
-                        SELECT M.num_courroie,v.marque, v.type, v.Immatriculation,M.date_courroie,
-                            M.Désignation,M.Index_veh,M.Num_facture,
-                            M.nom_fournisseur,M.Technicien  
-                            FROM Vehicule v
-                            INNER JOIN courroie_moteur M ON v.vehicule_id = M.vehicule_id
-                        WHERE M.num_courroie = ?
-                    """, (courroie_id,))
+                        SELECT b.battery_id, v.marque, v.type, v.Immatriculation, 
+                            b.date_battery, b.marque_battery, b.Num_facture, b.nom_fournisseur,b.Technicien
+                        FROM battery b
+                        INNER JOIN Vehicule v ON b.vehicule_id = v.vehicule_id
+                        WHERE b.battery_id = ?
+                    """, (battery_id,))
                     full_data = cursor.fetchone()
                 except pyodbc.Error as e:
                     messagebox.showerror("Database Error", f"Failed to fetch details: {str(e)}")
@@ -707,11 +712,10 @@ class MainPage(ctk.CTkFrame):
                         ("Type", full_data[2]),
                         ("Immatriculation", full_data[3]),
                         ("Date de Changement", full_data[4]),
-                        ("Désignation", full_data[5]),
-                        ("Index", full_data[6]),  
-                        ("Num Facture", full_data[7]),  # New field
-                        ("Nom Fournisseur", full_data[8]),
-                        ("Technicien",full_data[9])# New field
+                        ("Réference", full_data[5]),
+                        ("Num Facture", full_data[6]),  # New field
+                        ("Nom Fournisseur", full_data[7]),
+                        ("Technicien",full_data[8])# New field
                         ]
 
                 
@@ -817,25 +821,25 @@ class MainPage(ctk.CTkFrame):
 
 
             # Collect all visible num_glaciol IDs from the Treeview
-            num_Liquide_list = []
+            num_glaciol_list = []
             for item in tree.get_children():
                 row_values = tree.item(item)['values']
                 if row_values:
-                    num_Liquide_list.append(row_values[0])  # Assuming col1 is num_glaciol (primary key)
+                    num_glaciol_list.append(row_values[0])  # Assuming col1 is num_glaciol (primary key)
 
-            if not num_Liquide_list:
+            if not num_glaciol_list:
                 messagebox.showwarning("No Data", "No data to export!")
                 return
-            
+            print(num_glaciol_list)
             # Prepare SQL query to fetch full data of only visible rows
-            id_list = ','.join(str(Liquide_id) for Liquide_id in num_Liquide_list)
+            id_list = ','.join(str(glac_id) for glac_id in num_glaciol_list)
             print(id_list)
             query = f"""
-                SELECT M.num_courroie AS [N°], v.marque AS [Marque], v.type AS [Type], v.Immatriculation AS [Immatriculation], 
-                    M.date_courroie AS [Date de Changement],M.Désignation AS [Désignation],M.Index_veh AS [Index], M.Num_facture AS [Num Facture], M.nom_fournisseur AS [Nom Fournisseur],M.Technicien AS [Technicien]
+                SELECT b.battery_id AS [Numéro], v.marque AS [Marque], v.type AS [Type], v.Immatriculation AS [Immatriculation], 
+                    b.date_battery AS [Date de Glaciol], b.marque_battery AS [Litre], b.Num_facture AS [Num Facture], b.nom_fournisseur AS [Nom Fournisseur],b.Technicien AS [Technicien]
                 FROM Vehicule v
-                INNER JOIN courroie_moteur M ON v.vehicule_id = M.vehicule_id
-                WHERE M.num_courroie IN ({id_list})
+                INNER JOIN battery b ON v.vehicule_id = b.vehicule_id
+                WHERE b.battery_id IN ({id_list})
             """
 
             try:
@@ -847,11 +851,11 @@ class MainPage(ctk.CTkFrame):
                 # Column names from SQL aliases (inspect view)
                 wb = openpyxl.Workbook()
                 ws = wb.active
-                ws.title = "Courroie Export"
+                ws.title = "Glaciol Export"
 
                 # Write headers (as in inspect window / database)
-                headers = ["N°", "Marque", "Type", "Immatriculation", 
-                        "Date de Changement","Désignation","Index", "Num Facture", "Nom Fournisseur","Technicien"]
+                headers = ["Numéro", "Marque", "Type", "Immatriculation", 
+                        "Date de Changement", "Réference", "Num Facture", "Nom Fournisseur","Technicien"]
                 ws.append(headers)
 
                 # Write data rows manually
@@ -892,7 +896,7 @@ class MainPage(ctk.CTkFrame):
                 for row in range(2, ws.max_row + 1):  # Start from row 2 to skip header
                     ws.row_dimensions[row].height = 25  # Adjust to desired height
                 # Save the workbook
-                file_path = os.path.abspath("Courroie_Moteur_Export.xlsx")
+                file_path = os.path.abspath("BATTERY_Export.xlsx")
                 wb.save(file_path)
 
                 messagebox.showinfo("Export Successful", f"Data exported to {file_path}")
@@ -908,7 +912,7 @@ class MainPage(ctk.CTkFrame):
                     connection.close()
 
             
-        tab = "courroie_moteur"
+        tab = "battery"
         # Style
         style = ttk.Style()
         #style.theme_use("classic")
@@ -940,14 +944,19 @@ class MainPage(ctk.CTkFrame):
 
 
 # Modern scrollbar styling
-        
+        style.configure("Treeview.Scrollbar",
+    troughcolor="#f0f0f0",
+    background="#c1c1c1",
+    borderwidth=0,
+    relief="flat"
+)
 
 
 # Then modify your Treeview creation to use the custom style:
         
         tree = ttk.Treeview(
     self.page_frame,
-    columns=("col1", "col2", "col3", "col4", "col5", "col6","col7"),
+    columns=("col1", "col2", "col3", "col4", "col5", "col6"),
     show='headings',
     style="Treeview",
     selectmode="extended"
@@ -958,10 +967,7 @@ class MainPage(ctk.CTkFrame):
         "col3": None,
         "col4": None,
         "col5": None,
-        "col7": None,
-        
-        
-        
+        "col6": None,
         
     }   
         column_headings = {
@@ -970,20 +976,16 @@ class MainPage(ctk.CTkFrame):
     "col3": "Type", 
     "col4": "Immatriculation",
     "col5": "Date de Changement",
-    "col6": "Désignation",
-    "col7": "Index",
-    
+    "col6": "Réference de battery",
         
     }
         ord_column_headings = {
-    "col1": "num_chaine",
+    "col1": "num_glaciol",
     "col2": "Marque",
     "col3": "Type", 
     "col4": "Immatriculation",
-    "col5": "date_courroie",
-    "col6": "Désignation",
-    "col7": "Index_veh",
-    
+    "col5": "date_battery",
+    "col6": "marque_battery",
     }
     
         def treeview_sort_column(tree, col, tab):
@@ -998,10 +1000,9 @@ class MainPage(ctk.CTkFrame):
     
     # Construct and execute SQL query with ORDER BY
             query = f"""
-             SELECT M.num_courroie,v.marque, v.type, v.Immatriculation,M.date_courroie,
-                        M.Désignation,M.Index_veh
+            SELECT b.battery_id, v.marque, v.type, v.Immatriculation,b.date_battery,b.marque_battery  
                         FROM Vehicule v
-                        INNER JOIN courroie_moteur M ON v.vehicule_id = M.vehicule_id
+                        INNER JOIN battery b ON v.vehicule_id = b.vehicule_id
             ORDER BY {field} {sort_direction[col]}"""
             fetch_data(tree, query)
     
@@ -1009,17 +1010,11 @@ class MainPage(ctk.CTkFrame):
         for col, heading in column_headings.items():
             tree.heading(col, text=heading, anchor=tk.W,command=lambda c=col: treeview_sort_column(tree, c, tab))
             if col == "col1" :
-                tree.column(col, anchor=tk.W, width=35, minwidth=35)
-            elif col == "col2":
-                tree.column(col, anchor=tk.W, width=100, minwidth=100)
-            elif col == "col3":
-                tree.column(col, anchor=tk.W, width=120, minwidth=100)
-            elif col == "col7" :
-                tree.column(col, anchor=tk.W, width=60, minwidth=60)
-            elif col == "col4" or col == "col5":
-                tree.column(col, anchor=tk.W, width=200, minwidth=100)
+                tree.column(col, anchor=tk.W, width=40, minwidth=40)
+            elif col == "col2" or col =="col3":
+                tree.column(col, anchor=tk.W, width=80, minwidth=80)
             else:
-                tree.column(col, anchor=tk.W, width=140, minwidth=100)
+                tree.column(col, anchor=tk.W, width=180, minwidth=100)
 
  
 
@@ -1079,3 +1074,9 @@ class MainPage(ctk.CTkFrame):
 
 
 
+'''
+
+if __name__ == "__main__":
+    app = MainPage()
+
+    app.mainloop()'''

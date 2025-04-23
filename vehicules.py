@@ -8,7 +8,11 @@ import os
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-import datetime
+from datetime import *
+import pywinstyles
+from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.styles.borders import Border, Side
+from hPyT import *
 
 ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
 ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
@@ -50,8 +54,8 @@ class MainPage(ctk.CTkFrame):
         self.right_buttons_frame = ctk.CTkFrame(self.page_frame,fg_color="transparent" ,corner_radius=0,width=100)
         self.right_buttons_frame.grid(row=1,column=1,padx=(3,3) ,pady=10,sticky="nsew")
   
-        self.actions_label = ctk.CTkLabel(self.right_buttons_frame, text="Actions", font=("Poppins", 14, "bold"))
-        self.actions_label.pack(fill="x")
+        self.actions_label = ctk.CTkLabel(self.right_buttons_frame, text="Actions", font=("Poppins", 16, "bold"))
+        self.actions_label.pack(fill="x",pady=(0,4))
 
     
     
@@ -80,12 +84,12 @@ class MainPage(ctk.CTkFrame):
             popup = ctk.CTkToplevel()
             popup.title("Add New Record")
             popup.overrideredirect(True)
-            popup.geometry("700x450")
+            popup.geometry("650x530")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
             popup.grab_set()  # Make popup modal
             popup.focus_set()
-        
+            #pywinstyles.apply_style(popup, "aero")
                     # Create main frame with padding
             main_frame = ctk.CTkFrame(popup)
             main_frame.pack(expand=True, fill="both", padx=20, pady=20)
@@ -97,7 +101,7 @@ class MainPage(ctk.CTkFrame):
             # Get vehicle data
             
             # Fields and entries
-            fields = [ "Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne"
+            fields = [ "Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne",
                     "Date Assurance", "Carburant","Date Control Technique " , "Conducteur"]
             entries = []
             
@@ -112,17 +116,10 @@ class MainPage(ctk.CTkFrame):
                 field_frame.grid(row=row, column=col, padx=10, pady=5, sticky="nsew")
                 label = ctk.CTkLabel(field_frame, text=field + ":", font=("Helvetica", 18))
                 label.pack(anchor="w", pady=(0, 2))
-                
-            
-                
-                
-                    
-                    
-                    
-               
                 entry = ctk.CTkEntry(field_frame, font=("Helvetica", 13),placeholder_text=field, width=220,border_color="", height=40)
                 entry.pack(fill="x")
-                
+                entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#534AE1"))
+                entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
                 entries.append(entry)
                 
             
@@ -142,12 +139,19 @@ class MainPage(ctk.CTkFrame):
                 if any(value == '' for value in [values[1], values[2]]):
                     messagebox.showerror("Error", "Please fill all fields")
                     return
-                
-                query = "INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur],Anne, [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                check_query = "SELECT COUNT(*) FROM Vehicule WHERE Immatriculation = ?"
+                insert_query = "INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur],Anne, [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
-                    cursor.execute(query, values)
+                    cursor.execute(check_query, (values[2],))  # values[2] is Immatriculation
+                    exists = cursor.fetchone()[0]
+
+                    if exists:
+                        messagebox.showwarning("Doublon détecté", "🚫 Ce véhicule existe déjà dans la base de données.")
+                        return
+                    
+                    cursor.execute(insert_query, values)
                     connection.commit()
                     fetch_all_data(tree, tab)
                     messagebox.showinfo("Success", "Record added successfully")
@@ -253,7 +257,143 @@ class MainPage(ctk.CTkFrame):
             params = (f"%{value}%",) * 6 
             fetch_data(tree, query, params)
             
+        def filter_window(tree,*args):
+            filter_popup = ctk.CTkToplevel(self)
+            filter_popup.title("Filter")
+            filter_popup.geometry("450x500")
+            filter_popup.overrideredirect(True)
+            filter_popup.resizable(False, False)
+            filter_popup.transient(self.winfo_toplevel())
+            filter_popup.grab_set()  # Make popup modal
+            #pywinstyles.apply_style(filter_popup, "aero")
+            main_frame = ctk.CTkFrame(filter_popup, corner_radius=6)
+            main_frame.pack(expand=True, fill="both", padx=10, pady=10)
+            presets_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            presets_frame.pack(fill="x", pady=(0, 15))
+            
+            ctk.CTkLabel(presets_frame, text=" Filters Rapides:", font=("Poppins", 16,)).pack(anchor="w",padx=5, pady=(10, 10))
+            PRESETS = [
+            ("Assurance Expiré", "date_assurance <= CAST(GETDATE() AS DATE)"),
+            ("Control Expiré ", "date_control_technique <= CAST(GETDATE() AS DATE)")]
+            for preset_text, query_part in PRESETS:
+                btn = ctk.CTkButton(
+                    presets_frame,
+                    text=preset_text,
+                    width=120,
+                    height=30,
+                    fg_color="#3a3a3a",
+                    hover_color="#534ae1",
+                    command=lambda q=query_part: apply_preset_filter(tree, q, filter_popup)
+                )
+                btn.pack(side="left", padx=5)
+            # Column headings for combobox options
+            column_options = ["", "Marque", "Type", "Immatriculation", "Service Utilisateur","Date d'assurance","Date control technique","Carburant", "Conducteur",]
+            
+            # Create filter rows (combobox + entry)
+            filter_rows = []
+            ctk.CTkLabel(main_frame, text="Filtres Manuels:", font=("Poppins", 16 )).pack(anchor="w",padx=(5,0))
+            label_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            label_frame.pack(fill="x", pady=(0,5))
+            ctk.CTkLabel(label_frame, text="Column :",font=("poppins",14)).pack(side="left", padx=(5,100),pady=(25,0))
+            ctk.CTkLabel(label_frame, text="Search Value :",font=("poppins",14)).pack(side="left",pady=(25,0))
+            for i in range(3):
+                row_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+                row_frame.pack(fill="x", pady=(0,15))
                 
+                # Combobox for column selection
+                combobox = ctk.CTkComboBox(row_frame, 
+                                        values=column_options,
+                                        state="readonly",height=35,
+                                        width=180)
+                combobox.pack(side="left", padx=5,pady=(0,10))
+                
+                # Entry for filter value
+                entry = ctk.CTkEntry(row_frame, 
+                                    placeholder_text="Filter value...",height=40,
+                                    width=250,border_color="")
+                entry.pack(side="left", padx=5, fill="x", expand=True,pady=(0,10))
+                entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#534AE1"))
+                entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
+                filter_rows.append((combobox, entry))
+               
+                
+            # Button frame at bottom
+            button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            button_frame.pack(side="bottom", pady=20)
+            
+            def apply_filter():
+                conditions = []
+                params = []
+                
+                for combobox, entry in filter_rows:
+                    column = combobox.get()
+                    value = entry.get().strip()
+                    
+                    if column and value:
+                        # Map UI column names to database column names
+                        column_mapping = {
+                            "Marque": "marque",
+                            "Type": "type",
+                            "Immatriculation": "Immatriculation",
+                            "Service Utilisateur": "service_utilisateur",
+                            "Date d'assurance": "date_assurance",
+                            "Date control technique": "date_control_technique",
+                            "Carburant": "carburant",
+                            "Conducteur": "conducteur"
+                        }
+                        db_column = column_mapping.get(column, column)
+                        conditions.append(f"{db_column} LIKE ?")
+                        params.append(f"%{value}%")
+                
+                if not conditions:
+                    messagebox.showwarning("Warning", "Please select at least one column and enter a filter value")
+                else:
+                
+                    # Build the WHERE clause with AND between conditions
+                    where_clause = " AND ".join(conditions)
+                    query = f"""
+                        SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
+                        FROM Vehicule
+                        WHERE {where_clause}
+                    """
+                    
+                    fetch_data(tree, query, params)
+                    filter_popup.destroy()
+            def apply_preset_filter(tree, query_part, window):
+                query = f"""
+                    SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
+                    FROM Vehicule
+                    WHERE {query_part}
+                """
+                fetch_data(tree, query)
+                window.destroy()
+            # Buttons
+            cancel_btn = ctk.CTkButton(
+                button_frame, 
+                text="Cancel",
+                width=100,
+                command=filter_popup.destroy
+            )
+            cancel_btn.pack(side="right", padx=10)
+            
+            filter_btn = ctk.CTkButton(
+                button_frame, 
+                text="Filter",
+                width=100,
+                fg_color="#534ae1",
+                command=apply_filter
+            )
+            filter_btn.pack(side="right")
+            
+            # Center the popup
+            filter_popup.update_idletasks()
+            x = (filter_popup.winfo_screenwidth() - filter_popup.winfo_width()) // 2
+            y = (filter_popup.winfo_screenheight() - filter_popup.winfo_height()) // 2
+            filter_popup.geometry(f"+{x}+{y}")
+            filter_popup.bind("<Return>", lambda e: apply_filter())
+            filter_popup.bind("<Escape>", lambda e: filter_popup.destroy)
+            
+                    
             
                             
                 
@@ -339,12 +479,12 @@ class MainPage(ctk.CTkFrame):
                 return
 
             record_id = item_values[0]  # Assuming the first column is the unique ID
-            new_values = [entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip()]
+            new_values = [entries[0].get().strip(),entries[1].get().strip(),entries[2].get().strip(),entries[3].get().strip(),entries[4].get().strip(),datetime.strptime(entries[5].get().strip(), "%m/%d/%Y").date()if entries[5].get().strip() else None,entries[6].get().strip(),datetime.strptime(entries[7].get().strip(), "%m/%d/%Y").date() if entries[7].get().strip() else None,entries[8].get().strip()]
             if any(value == '' for value in new_values):
                 messagebox.showwarning("Warning", "Please fill all fields")
                 return
 
-            query = f"UPDATE {tab} SET  {tab} SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,Anne = ?,[date_assurance] = ?, carburant = ?,[date_control_technique] = ?, conducteur = ? WHERE vehicule_id = ?"
+            query = f"UPDATE {tab}  SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,Anne = ?,[date_assurance] = ?, carburant = ?,[date_control_technique] = ?, conducteur = ? WHERE vehicule_id = ?"
             try:
                 connection = get_connection()
                 cursor = connection.cursor()
@@ -383,7 +523,9 @@ class MainPage(ctk.CTkFrame):
             # Create popup window
             popup = ctk.CTkToplevel()
             popup.title("Update Record")
-            popup.geometry("600x450")
+            popup.geometry("600x530")
+           
+            opacity.set(popup, opacity=0.5) 
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
             popup.grab_set()  # Make popup modal
@@ -398,7 +540,7 @@ class MainPage(ctk.CTkFrame):
             main_frame.grid_rowconfigure(4, weight=1)
 
             # Fields and entries
-            fields = ["N°","Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne"
+            fields = ["Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne",
                     "Date Assurance", "Carburant","Date Control Technique " , "Conducteur"]
             entries = []
 
@@ -418,7 +560,8 @@ class MainPage(ctk.CTkFrame):
                 entry.pack(fill="x")
                 
                 entries.append(entry)
-               
+                entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#534AE1"))
+                entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
             # Populate entries with current values
             for entry, value in zip(entries, full_data):
                 
@@ -461,25 +604,7 @@ class MainPage(ctk.CTkFrame):
             y = (self.winfo_screenheight() - popup.winfo_height()) // 2
             popup.geometry(f"+{x}+{y}")
         def show_inspect_window(self, tree, row_id):
-            current_values = tree.item(row_id)['values']
-            veh_id = current_values[0]  # Get the glaciol number
-
-            # Fetch complete data including new fields
-            try:
-                connection = get_connection()
-                cursor = connection.cursor()
-                cursor.execute("""
-                    SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,[Anne],[date_assurance],[date_control_technique],[carburant],conducteur  
-                    FROM Vehicule
-                    WHERE vehicule_id = ?
-                """, (veh_id,))
-                full_data = cursor.fetchone()
-            except pyodbc.Error as e:
-                messagebox.showerror("Database Error", f"Failed to fetch details: {str(e)}")
-                return
-            finally:
-                if connection:
-                    connection.close()
+            
             # Get all items and current index
             all_items = tree.get_children()
             current_index = all_items.index(row_id) 
@@ -531,7 +656,20 @@ class MainPage(ctk.CTkFrame):
             def update_display():
                 nonlocal current_index
                 item_id = all_items[current_index]
-                values = tree.item(item_id, 'values')
+                item_values = tree.item(item_id)['values']
+                if not item_values:
+                    return
+            
+                vehicule_id = item_values[0]
+                connection = get_connection()
+                cursor = connection.cursor()
+                cursor.execute("""
+                    SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,[Anne],[date_assurance],[date_control_technique],[carburant],conducteur  
+                    FROM Vehicule
+                    WHERE vehicule_id = ?
+                """, (vehicule_id,))
+                full_data = cursor.fetchone()
+                connection.close()
                 fields = [
                         ("N°", full_data[0]),
                         ("Marque", full_data[1]),
@@ -705,6 +843,23 @@ class MainPage(ctk.CTkFrame):
                     max_length = max((len(str(ws.cell(row=row, column=col_num).value)) for row in range(1, ws.max_row + 1)), default=10)
                     adjusted_width = (max_length + 2)
                     ws.column_dimensions[get_column_letter(col_num)].width = adjusted_width
+                
+                table_ref = f"A1:I{ws.max_row}"
+                table = Table(displayName="GlaciolExportTable", ref=table_ref)
+                style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False, showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+                table.tableStyleInfo = style
+                ws.add_table(table)
+                thin_border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                    for cell in row:
+                        cell.border = thin_border
+                for row in range(2, ws.max_row + 1):  # Start from row 2 to skip header
+                    ws.row_dimensions[row].height = 25  # Adjust to desired height
                 # Save the workbook
                 file_path = os.path.abspath("Vehicules_Export.xlsx")
                 wb.save(file_path)
@@ -864,7 +1019,7 @@ class MainPage(ctk.CTkFrame):
                 command=export_visible_to_excel
             )
         self.export_button.grid(row=0, column=3, padx=10, pady=10)
-        self.filter_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Filter",image=self.filter_icon,compound="left",fg_color="transparent",corner_radius=30, command=lambda: filter_search(tree, tab))
+        self.filter_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Filter",image=self.filter_icon,compound="left",fg_color="transparent",corner_radius=30, command=lambda: filter_window(tree))
         self.filter_button.grid(row=0, column=4, padx=10, pady=10)
 
         self.refresh_button = ctk.CTkButton(self.buttons_frame,width=30 ,text="Refresh",image=self.refresh_icon,compound="left",fg_color="transparent",corner_radius=30,command=lambda: fetch_all_data(tree, tab))
