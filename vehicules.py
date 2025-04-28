@@ -37,6 +37,7 @@ class MainPage(ctk.CTkFrame):
         self.supprimer_icon = self.load_icon("Image_Assets/trash.png", size=(20, 20))
         self.Update_icon = self.load_icon("Image_Assets/edit.png", size=(20, 20))
         self.Inspect_icon = self.load_icon("Image_Assets/search1.png", size=(20, 20))
+        self.excel_icon = self.load_icon("Image_Assets/excel.png", size=(25, 25))
         
         self.page_frame = ctk.CTkFrame(self, corner_radius=10,fg_color="#050505")
         self.page_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
@@ -83,7 +84,7 @@ class MainPage(ctk.CTkFrame):
             # Create popup window
             popup = ctk.CTkToplevel()
             popup.title("Add New Record")
-            popup.overrideredirect(True)
+            
             popup.geometry("650x530")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
@@ -101,7 +102,7 @@ class MainPage(ctk.CTkFrame):
             # Get vehicle data
             
             # Fields and entries
-            fields = [ "Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne",
+            fields = [ "Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne","Index",
                     "Date Assurance", "Carburant","Date Control Technique " , "Conducteur"]
             entries = []
             
@@ -140,7 +141,7 @@ class MainPage(ctk.CTkFrame):
                     messagebox.showerror("Error", "Please fill all fields")
                     return
                 check_query = "SELECT COUNT(*) FROM Vehicule WHERE Immatriculation = ?"
-                insert_query = "INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur],Anne, [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                insert_query = "INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur],Anne,index_veh, [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
@@ -246,14 +247,14 @@ class MainPage(ctk.CTkFrame):
                 
             
             value = self.search_entry.get()
-            query = f'''SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,conducteur  
+            query = f'''SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,index_veh 
                     FROM Vehicule WHERE 
                     vehicule_id LIKE ? OR 
                     marque LIKE ? OR 
                     type LIKE ? OR 
                     Immatriculation LIKE ? OR 
                     service_utilisateur LIKE ? OR 
-                    conducteur  LIKE ?'''
+                    index_veh  LIKE ?'''
             params = (f"%{value}%",) * 6 
             fetch_data(tree, query, params)
             
@@ -261,7 +262,7 @@ class MainPage(ctk.CTkFrame):
             filter_popup = ctk.CTkToplevel(self)
             filter_popup.title("Filter")
             filter_popup.geometry("450x500")
-            filter_popup.overrideredirect(True)
+            #filter_popup.attributes("-topmost", True)
             filter_popup.resizable(False, False)
             filter_popup.transient(self.winfo_toplevel())
             filter_popup.grab_set()  # Make popup modal
@@ -287,14 +288,14 @@ class MainPage(ctk.CTkFrame):
                 )
                 btn.pack(side="left", padx=5)
             # Column headings for combobox options
-            column_options = ["", "Marque", "Type", "Immatriculation", "Service Utilisateur","Date d'assurance","Date control technique","Carburant", "Conducteur",]
+            column_options = ["", "Marque", "Type", "Immatriculation", "Service Utilisateur","Index","Date d'assurance","Date control technique","Carburant", "Conducteur",]
             
             # Create filter rows (combobox + entry)
             filter_rows = []
             ctk.CTkLabel(main_frame, text="Filtres Manuels:", font=("Poppins", 16 )).pack(anchor="w",padx=(5,0))
             label_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
             label_frame.pack(fill="x", pady=(0,5))
-            ctk.CTkLabel(label_frame, text="Column :",font=("poppins",14)).pack(side="left", padx=(5,100),pady=(25,0))
+            ctk.CTkLabel(label_frame, text="Column :",font=("poppins",14)).pack(side="left", padx=(5,130),pady=(25,0))
             ctk.CTkLabel(label_frame, text="Search Value :",font=("poppins",14)).pack(side="left",pady=(25,0))
             for i in range(3):
                 row_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -339,7 +340,7 @@ class MainPage(ctk.CTkFrame):
                             "Date d'assurance": "date_assurance",
                             "Date control technique": "date_control_technique",
                             "Carburant": "carburant",
-                            "Conducteur": "conducteur"
+                            "Index": "index_veh"
                         }
                         db_column = column_mapping.get(column, column)
                         conditions.append(f"{db_column} LIKE ?")
@@ -352,27 +353,36 @@ class MainPage(ctk.CTkFrame):
                     # Build the WHERE clause with AND between conditions
                     where_clause = " AND ".join(conditions)
                     query = f"""
-                        SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
+                        SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, index_veh  
                         FROM Vehicule
                         WHERE {where_clause}
                     """
                     
                     fetch_data(tree, query, params)
+                    filter_popup.grab_release()
                     filter_popup.destroy()
+            def close_popup():
+                try:
+                    filter_popup.grab_release()
+                    filter_popup.destroy()
+                except:
+                    pass
+                
             def apply_preset_filter(tree, query_part, window):
                 query = f"""
-                    SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
+                    SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, index_veh  
                     FROM Vehicule
                     WHERE {query_part}
                 """
                 fetch_data(tree, query)
+                window.grab_release()
                 window.destroy()
             # Buttons
             cancel_btn = ctk.CTkButton(
                 button_frame, 
                 text="Cancel",
                 width=100,
-                command=filter_popup.destroy
+                command=close_popup
             )
             cancel_btn.pack(side="right", padx=10)
             
@@ -401,7 +411,7 @@ class MainPage(ctk.CTkFrame):
         def fetch_all_data(tree, tab):
             
             query = """
-             SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,conducteur  
+             SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,index_veh  
                     FROM Vehicule 
                 """
             fetch_data(tree, query)
@@ -479,12 +489,12 @@ class MainPage(ctk.CTkFrame):
                 return
 
             record_id = item_values[0]  # Assuming the first column is the unique ID
-            new_values = [entries[0].get().strip(),entries[1].get().strip(),entries[2].get().strip(),entries[3].get().strip(),entries[4].get().strip(),datetime.strptime(entries[5].get().strip(), "%m/%d/%Y").date()if entries[5].get().strip() else None,entries[6].get().strip(),datetime.strptime(entries[7].get().strip(), "%m/%d/%Y").date() if entries[7].get().strip() else None,entries[8].get().strip()]
+            new_values = [entries[0].get().strip(),entries[1].get().strip(),entries[2].get().strip(),entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),datetime.strptime(entries[6].get(), '%Y-%m-%d').date()if entries[6].get() else None,entries[7].get(),datetime.strptime(entries[8].get(), '%Y-%m-%d').date() if entries[8].get().strip() else None,entries[9].get().strip()]
             if any(value == '' for value in new_values):
                 messagebox.showwarning("Warning", "Please fill all fields")
                 return
 
-            query = f"UPDATE {tab}  SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,Anne = ?,[date_assurance] = ?, carburant = ?,[date_control_technique] = ?, conducteur = ? WHERE vehicule_id = ?"
+            query = f"UPDATE {tab}  SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,Anne = ?,index_veh = ?,[date_assurance] = ?, carburant = ?,[date_control_technique] = ?, conducteur = ? WHERE vehicule_id = ?"
             try:
                 connection = get_connection()
                 cursor = connection.cursor()
@@ -504,7 +514,7 @@ class MainPage(ctk.CTkFrame):
             current_values = tree.item(row_id)['values']
             glac_num = current_values[0]
             # Fetch complete data using existing pattern
-            query = """SELECT  marque, type, Immatriculation,service_utilisateur,[Anne],[date_assurance],[carburant],[date_control_technique],conducteur  
+            query = """SELECT  marque, type, Immatriculation,service_utilisateur,[Anne],index_veh,[date_assurance],[carburant],[date_control_technique],conducteur  
                     FROM Vehicule
                     WHERE vehicule_id = ?"""
             
@@ -540,7 +550,7 @@ class MainPage(ctk.CTkFrame):
             main_frame.grid_rowconfigure(4, weight=1)
 
             # Fields and entries
-            fields = ["Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne",
+            fields = ["Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne","Index",
                     "Date Assurance", "Carburant","Date Control Technique " , "Conducteur"]
             entries = []
 
@@ -664,7 +674,7 @@ class MainPage(ctk.CTkFrame):
                 connection = get_connection()
                 cursor = connection.cursor()
                 cursor.execute("""
-                    SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,[Anne],[date_assurance],[date_control_technique],[carburant],conducteur  
+                    SELECT  vehicule_id,marque, type, Immatriculation,service_utilisateur,[Anne],index_veh,[date_assurance],[date_control_technique],[carburant],conducteur  
                     FROM Vehicule
                     WHERE vehicule_id = ?
                 """, (vehicule_id,))
@@ -677,10 +687,11 @@ class MainPage(ctk.CTkFrame):
                         ("Immatriculation", full_data[3]),
                         ("Service Utilisateur", full_data[4]),
                         ("Anne", full_data[5]),
-                        ("Date d'assurance", full_data[6]),  
-                        ("Date de controle Techique", full_data[7]),
-                        ("Carburant",full_data[8]),
-                        ("Conducteur",full_data[9])
+                        ("Index", full_data[6]),
+                        ("Date d'assurance", full_data[7]),  
+                        ("Date de controle Techique", full_data[8]),
+                        ("Carburant",full_data[9]),
+                        ("Conducteur",full_data[10])
                         ]
 
                 
@@ -801,7 +812,7 @@ class MainPage(ctk.CTkFrame):
             print(id_list)
             query = f"""
                 SELECT vehicule_id AS [N°], marque AS [Marque], type AS [Type], Immatriculation AS [Immatriculation], 
-                    service_utilisateur AS [Service Utilisateur], Anne AS [Anne], date_assurance AS [Date d'assurance], date_control_technique AS [Date de controle Techique],carburant AS [Carburant],conducteur AS [Conducteur]
+                    service_utilisateur AS [Service Utilisateur], Anne AS [Anne],index_veh AS [Index], date_assurance AS [Date d'assurance], date_control_technique AS [Date de controle Techique],carburant AS [Carburant],conducteur AS [Conducteur]
                 FROM Vehicule 
                 
                 WHERE vehicule_id IN ({id_list})
@@ -819,7 +830,7 @@ class MainPage(ctk.CTkFrame):
                 ws.title = "Glaciol Export"
 
                 # Write headers (as in inspect window / database)
-                headers = ["N°","Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne"
+                headers = ["N°","Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne","Index",
                     "Date d'Assurance", "Carburant","Date de Control Technique " , "Conducteur"]
                 ws.append(headers)
 
@@ -885,7 +896,7 @@ class MainPage(ctk.CTkFrame):
         borderwidth=0,
         font=('Poppins', 12))
         style.configure("Treeview.Heading",  background="#171717",rowheight=50, foreground="#cccccc",relief="flat",borderwidth=0,
-    font=('Poppins', 14, 'bold'),
+    font=('Poppins', 12, 'bold'),
     padding=5)
         
         
@@ -942,7 +953,7 @@ class MainPage(ctk.CTkFrame):
     "col3": "Type", 
     "col4": "Immatriculation",
     "col5": "Service Utilisateur",
-    "col6": "Conducteur"
+    "col6": "Index"
         
     }
         ord_column_headings = {
@@ -951,7 +962,7 @@ class MainPage(ctk.CTkFrame):
     "col3": "Type", 
     "col4": "Immatriculation",
     "col5": "service_utilisateur",
-    "col6": "Conducteur",
+    "col6": "index_veh",
     }
     
         def treeview_sort_column(tree, col, tab):
@@ -1007,14 +1018,15 @@ class MainPage(ctk.CTkFrame):
         self.search_entry.bind('<FocusOut>', lambda e, entry=self.search_entry: entry.configure(border_color=""))
         self.search_entry.bind('<KeyRelease>', lambda e: filter_search(tree))
         
-        self.add_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Ajouter",image=self.add_icon,fg_color="#534ae1",corner_radius=30,compound="left",command=lambda: start_add_mode(tree, tab, ))
+        self.add_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Ajouter",image=self.add_icon,fg_color="#534ae1",corner_radius=30,compound="left",font=("poppins",12),command=lambda: start_add_mode(tree, tab, ))
         self.add_button.grid(row=0, column=1, padx=10, pady=10,sticky="e")
         if self.user_role == "technicien":
             self.add_button.configure(state="disabled", fg_color="gray")
         self.export_button = ctk.CTkButton(
                 self.buttons_frame,
-                text="Export to Excel",
-                fg_color="#4CAF50",  # Green button
+                image=self.excel_icon,width=30,height=30,
+                text="Export ",compound="left",
+                fg_color="#02723b",font=("poppins",12),  # Green button
                 corner_radius=30,
                 command=export_visible_to_excel
             )

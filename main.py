@@ -15,6 +15,7 @@ from tkinter import ttk
 import tkinter as tk
 import pywinstyles
 from hPyT import *
+from CTkMessagebox import CTkMessagebox
 
 # Set CustomTkinter Appearance and Theme
 ctk.set_appearance_mode("dark")  # Modes: "dark", "light", "system"
@@ -36,9 +37,9 @@ class MainPage(ctk.CTk):
         
         self.nav_buttons = {}
         self.menu_icon = self.load_icon("Image_Assets/Menu.png", size=(25, 25))
-        self.car_icon = self.load_icon("Image_Assets/car.png", size=(35, 35))
-        self.Interventions_icon = self.load_icon("Image_Assets/service-de-reparation.png", size=(25, 25))
-        self.Historique_Rep_icon = self.load_icon("Image_Assets/calendrier.png", size=(25, 25))
+        self.car_icon = self.load_icon("Image_Assets/car.png", size=(25, 25))
+        self.Interventions_icon = self.load_icon("Image_Assets/interventions.png", size=(25, 25))
+        self.Historique_Rep_icon = self.load_icon("Image_Assets/reparation.png", size=(25, 25))
         self.Utilisateur_icon = self.load_icon("Image_Assets/utilisateur.png", size=(25, 25))
         self.Utilisateur2_icon = self.load_icon("Image_Assets/utilisateur2.png", size=(30, 30))
         self.Rapports_icon = self.load_icon("Image_Assets/fichier-texte.png", size=(25, 25))
@@ -48,13 +49,14 @@ class MainPage(ctk.CTk):
         self.logo_icon = self.load_icon("Image_Assets/Logo.png", size=(60, 60))
         self.chaine_icon = self.load_icon("Image_Assets/chaine.png", size=(30, 30))
         self.huile_icon = self.load_icon("Image_Assets/huile_moteur.png", size=(30, 30))
+        self.corrie_icon = self.load_icon("Image_Assets/courroie-moteur.png", size=(30, 30))
         self.frein_icon = self.load_icon("Image_Assets/frein.png", size=(30, 30))
         self.glaciol_icon = self.load_icon("Image_Assets/glaciol.png", size=(30, 30))
         self.batterie_icon = self.load_icon("Image_Assets/batterie.png", size=(30, 30))
         # Navigation Menu Frame
-        self.menu_frame = ctk.CTkFrame(self, width=150, corner_radius=0,fg_color="#08090b")
+        self.menu_frame = ctk.CTkFrame(self, width=150, corner_radius=5,fg_color="#08090b")
         self.menu_frame.pack(side="left", fill="y")
-        self.notification_frame = ctk.CTkFrame(self,height=45,fg_color="#08090b",corner_radius=0)
+        self.notification_frame = ctk.CTkFrame(self,height=45,fg_color="#08090b",corner_radius=5)
         self.notification_frame.pack(side="top" ,fill="x")
         self.notification_frame.pack_propagate(False)  # Prevents the frame from expanding
          
@@ -80,7 +82,7 @@ class MainPage(ctk.CTk):
         # Add Navigation Buttons
         self.add_nav_button("Véhicules","Véhicules", self.car_icon, self.show_véhicules_page)
         self.add_nav_button("Interventions","Interventions", self.Interventions_icon, self.show_Interventions_page)
-        self.add_nav_button("Historique","Historique", self.Historique_Rep_icon, self.show_Historique_Rep_page)
+        self.add_nav_button("Historique","Historique \n de reparation", self.Historique_Rep_icon, self.show_Historique_Rep_page)
         if  user_role != "technicien":
          self.add_nav_button("Utilisateurs", "Utilisateurs", self.Utilisateur_icon, self.show_Utilisateur_page)
         self.add_nav_button("Rapports","Rapports", self.Rapports_icon, self.show_Rapports_page)
@@ -199,11 +201,22 @@ class MainPage(ctk.CTk):
             return
 
         today = datetime.date.today().strftime('%Y-%m-%d')
-        query_huile="""SELECT H.num_huile, v.vehicule_id, v.marque, v.type, v.Immatriculation, 
-                H.Index_veh, H.Index_veh_old
-            FROM Vehicule v
-            INNER JOIN huile_moteur H ON v.vehicule_id = H.vehicule_id
-            WHERE H.Index_veh - H.Index_veh_old >= 10000"""
+        
+        query_huile="""
+                    SELECT vehicule_id, marque, type, Immatriculation, index_veh, index_huile
+                    FROM Vehicule
+                    WHERE index_veh - index_huile >= 10000
+                    """
+        query_courrio="""
+                    SELECT vehicule_id, marque, type, Immatriculation, index_veh, index_courroie
+                    FROM Vehicule
+                    WHERE index_veh - index_huile >= 80000
+                    """
+        query_chaine="""
+                    SELECT vehicule_id, marque, type, Immatriculation, index_veh, index_chaine
+                    FROM Vehicule
+                    WHERE index_veh - index_chaine >= 12000
+                    """
         query_vehicule = """
         SELECT vehicule_id, marque, type, date_assurance, date_control_technique
         FROM Vehicule
@@ -227,8 +240,7 @@ class MainPage(ctk.CTk):
                 notification_text = f"{marque} {type_}  : \n"
                 délai_ass =assurance_date - today_date  
                 délai_tech =control_date - today_date 
-                print(délai_ass.days)
-                print(délai_tech.days)
+                
                 if 0 < délai_ass.days <=15 :
                     status = f"Expiré Dans {délai_ass.days} jours"
                     notification_text += f"Assurance {status} "
@@ -246,12 +258,29 @@ class MainPage(ctk.CTk):
                     notification_text += f"| Control Technique {status}"
                 
                 self.notifications.append(("vehicle",vehicule_id, notification_text))
+                
+            # Check for oil change notifications
             cursor.execute(query_huile)
             index_results = cursor.fetchall()
             for row in index_results:
-                num_huile, vehicule_id, marque, type_, immatriculation, index_veh, index_veh_old = row
-                notification_text = f"{marque} {type_} ({immatriculation}) - Oil change needed (Index: {index_veh})"
-                self.notifications.append(("huile", num_huile, notification_text))
+                vehicule_id, marque, type_, immatriculation, index_veh, index_huile = row
+                notification_text = f"{marque} {type_} ({immatriculation}) : \n Changement d'huile nécessaire (Index: {index_veh})"
+                self.notifications.append(("huile", vehicule_id, notification_text))
+            # Check for chain change notifications
+            cursor.execute(query_chaine)
+            index_results = cursor.fetchall()
+            for row in index_results:
+                vehicule_id, marque, type_, immatriculation, index_veh, index_chaine = row
+                notification_text = f"{marque} {type_} ({immatriculation}) : \n Changement d'chaine de distrubution nécessaire (Index: {index_veh})"
+                self.notifications.append(("chaine", vehicule_id, notification_text))
+            cursor.execute(query_courrio)
+            index_results = cursor.fetchall()
+            for row in index_results:
+                vehicule_id, marque, type_, immatriculation, index_veh, index_courrio = row
+                notification_text = f"{marque} {type_} ({immatriculation}) : \n Changement de Courroie Moteur nécessaire (Index: {index_veh})"
+                self.notifications.append(("courroie", vehicule_id, notification_text))
+            
+            
         finally:  
             connection.close()    
         if len(self.notifications)>0 :
@@ -332,16 +361,7 @@ class MainPage(ctk.CTk):
         scrollable_frame.pack(side="left", fill="both", expand=True)
         self.notification_popup.geometry(f"{window_width}x{window_height}+{current_x}+{current_y}")
         self.notification_popup.attributes("-alpha", 0.01)
-        '''scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")'''
+        
         def slide_in():
             nonlocal current_x, fade_alpha
             if current_x > target_x:
@@ -368,23 +388,41 @@ class MainPage(ctk.CTk):
         
         def remove_notification(vehicule_id):
             """Remove notification from list and decrease count."""
-            self.notifications = [notif for notif in self.notifications if notif[0] != vehicule_id]
+            # Find and remove the specific notification
+            self.notifications = [
+                notif for notif in self.notifications 
+                if not (notif[0] == notif_type and str(notif[1]) == str(id_value))
+            ]
             
+            # Update notification icon
+            if len(self.notifications) > 0:
+                self.notification_btn.configure(image=self.notification_click_icon, text="")
+            else:
+                self.notification_btn.configure(image=self.notification_icon, text="")
             
-
             # Close the dropdown if all notifications are gone
-            if len(self.notifications) == 0:
+            if len(self.notifications) == 0 and hasattr(self, 'notification_popup'):
                 self.notification_popup.destroy()
-                self.notification_btn.configure(image=self.notification_icon)
-                
-
+        
         
         # Populate notifications
-        for notif_type, id_value, text in self.notifications:
+        for notif in self.notifications:
+            notif_type = notif[0]
+            id_value = notif[1]
+            text = notif[2]
+            
+            if notif_type == "vehicle":
+                cmd = lambda n=notif: [self.go_to_vehicle(n[0], n[1]), remove_notification((n[0], n[1]))]
+            elif notif_type == "huile":
+                cmd = lambda n=notif: [self.create_huile(n[1]), remove_notification((n[0], n[1]))]
+            elif notif_type == "chaine":
+                cmd = lambda n=notif: [self.create_chaine(n[1]), remove_notification((n[0], n[1]))]
+            elif notif_type == "courroie":
+                cmd = lambda n=notif: [self.create_courroie(n[1]), remove_notification((n[0], n[1]))]
             notif_btn = ctk.CTkButton(
                 scrollable_frame, text=text, font=("poppins", 12,"bold"),
                 fg_color="transparent", hover_color="#555555",
-                corner_radius=5, command=lambda t=notif_type, i=id_value: [self.go_to_vehicle(t, i), remove_notification((t, i))],
+        corner_radius=5, command=cmd,
                 anchor="center", width=220,height=50
             )
             notif_btn.pack(fill="x", pady=2, padx=5)
@@ -408,7 +446,294 @@ class MainPage(ctk.CTk):
 
         self.notification_popup.bind("<Button-1>", check_click)
         slide_in()  # Start the animation
+        
+    def create_courroie(self, vehicule_id):
+        # Store the vehicle ID for later use
+        self.selected_vehicule_id = vehicule_id
+        
+        # Show confirmation dialog
+        result = CTkMessagebox(
+            title="Confirmation",
+            message="Voulez-vous ajouter une nouvelle donnée dans Courroie Moteur ?",
+            icon="question",
+            option_1="Oui",
+            option_2="Non"
+        )
+        
+        if result.get() == "Oui":
+            # Switch to Interventions page
+            self.show_Interventions_page()
+            self.tab_to_open = "Courroie Moteur"
+            
+            # After switching pages, fill the form
+            self.after(1000, self.open_courroie_form)
 
+    def open_courroie_form(self):
+        """Directly trigger the add mode for Courroie"""
+        if hasattr(self, 'Courroie_frame') and hasattr(self.Courroie_frame, 'public_add_mode'):
+            try:
+                self.Courroie_frame.public_add_mode()
+                self.after(500, self.fill_courroie_popup)
+            except Exception as e:
+                print(f"Error triggering add mode: {e}")
+                self.after(500, self.open_courroie_form)
+        else:
+            print("Courroie frame not ready, retrying...")
+            self.after(500, self.open_courroie_form)
+
+    def fill_courroie_popup(self):
+        # Get vehicle data
+        connection = self.get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT marque, type, Immatriculation, index_veh FROM Vehicule WHERE vehicule_id = ?", 
+            (self.selected_vehicule_id,)
+        )
+        marque, type, immat, index = cursor.fetchone()
+        cursor.close()
+        connection.close()
+
+        # Find the popup window
+        for child in self.winfo_children():
+            if isinstance(child, ctk.CTkToplevel) and "Add New Record" in child.title():
+                # Find and fill the form fields
+                entries = []
+                comboboxes = []
+                
+                def find_widgets(widget):
+                    if isinstance(widget, ctk.CTkEntry):
+                        entries.append(widget)
+                    elif isinstance(widget, ctk.CTkComboBox):
+                        comboboxes.append(widget)
+                    for child in widget.winfo_children():
+                        find_widgets(child)
+
+                find_widgets(child)
+
+                # Sort widgets by position
+                entries.sort(key=lambda e: e.winfo_y())
+                comboboxes.sort(key=lambda c: c.winfo_y())
+
+                try:
+                    # Fill type combobox
+                    if comboboxes:
+                        comboboxes[0].set(f"{type} - {immat}")
+                    
+                    # Fill other fields
+                    if len(entries) > 1:  # Marque
+                        entries[0].configure(state="normal")
+                        entries[0].delete(0, 'end')
+                        entries[0].insert(0, marque)
+                        entries[0].configure(state="readonly")
+                        
+                    if len(entries) > 2:  # Immatriculation
+                        entries[1].configure(state="normal")
+                        entries[1].delete(0, 'end')
+                        entries[1].insert(0, immat)
+                        entries[1].configure(state="readonly")
+                        
+                    if len(entries) > 3:  # Date
+                        entries[2].delete(0, 'end')
+                        entries[2].insert(0, datetime.date.today().strftime('%Y-%m-%d'))
+                        
+                    if len(entries) > 6:  # Index
+                        entries[3].delete(0, 'end')
+                        entries[3].insert(0, index)
+                        
+                except Exception as e:
+                    print("Error filling form:", e)
+                break
+
+    def create_chaine(self, vehicule_id):
+        # Store the vehicle ID for later use
+        self.selected_vehicule_id = vehicule_id
+        
+        # Show confirmation dialog
+        result = CTkMessagebox(
+            title="Confirmation",
+            message="Voulez-vous ajouter une nouvelle donnée dans Chaine de Distribution ?",
+            icon="question",
+            option_1="Oui",
+            option_2="Non"
+        )
+        
+        if result.get() == "Oui":
+            # Switch to Interventions page
+            self.show_Interventions_page()
+            self.tab_to_open = "Chaine de Distribution"
+            # After switching pages, fill the form
+            self.after(1000, self.open_chaine_form)
+
+    def open_chaine_form(self):
+        """Directly trigger the add mode for Chaine"""
+        if hasattr(self, 'Chaine_frame') and hasattr(self.Chaine_frame, 'public_add_mode'):
+            try:
+                self.Chaine_frame.public_add_mode()
+                self.after(500, self.fill_chaine_popup)
+            except Exception as e:
+                print(f"Error triggering add mode: {e}")
+                self.after(500, self.open_chaine_form)
+        else:
+            print("Chaine frame not ready, retrying...")
+            self.after(500, self.open_chaine_form)
+
+    def fill_chaine_popup(self):
+        # Get vehicle data
+        connection = self.get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT marque, type, Immatriculation, index_veh FROM Vehicule WHERE vehicule_id = ?", 
+            (self.selected_vehicule_id,)
+        )
+        marque, type, immat, index = cursor.fetchone()
+        cursor.close()
+        connection.close()
+
+        # Find the popup window
+        for child in self.winfo_children():
+            if isinstance(child, ctk.CTkToplevel) and "Add New Record" in child.title():
+                # Find and fill the form fields
+                entries = []
+                comboboxes = []
+                
+                def find_widgets(widget):
+                    if isinstance(widget, ctk.CTkEntry):
+                        entries.append(widget)
+                    elif isinstance(widget, ctk.CTkComboBox):
+                        comboboxes.append(widget)
+                    for child in widget.winfo_children():
+                        find_widgets(child)
+
+                find_widgets(child)
+
+                # Sort widgets by position
+                entries.sort(key=lambda e: e.winfo_y())
+                comboboxes.sort(key=lambda c: c.winfo_y())
+
+                try:
+                    # Fill type combobox
+                    if comboboxes:
+                        comboboxes[0].set(f"{type} - {immat}")
+                    
+                    # Fill other fields
+                    if len(entries) > 1:  # Marque
+                        entries[0].configure(state="normal")
+                        entries[0].delete(0, 'end')
+                        entries[0].insert(0, marque)
+                        entries[0].configure(state="readonly")
+                        
+                    if len(entries) > 2:  # Immatriculation
+                        entries[1].configure(state="normal")
+                        entries[1].delete(0, 'end')
+                        entries[1].insert(0, immat)
+                        entries[1].configure(state="readonly")
+                        
+                    if len(entries) > 3:  # Date
+                        entries[2].delete(0, 'end')
+                        entries[2].insert(0, datetime.date.today().strftime('%Y-%m-%d'))
+                        
+                    if len(entries) > 6:  # Index
+                        entries[3].delete(0, 'end')
+                        entries[3].insert(0, index)
+                        
+                except Exception as e:
+                    print("Error filling form:", e)
+                break
+    def create_huile(self, vehicule_id):
+        # Store the vehicle ID for later use
+        self.selected_vehicule_id = vehicule_id
+        
+        # Show confirmation dialog
+        result = CTkMessagebox(
+            title="Confirmation",
+            message="Voulez-vous ajouter une nouvelle donnée dans Huile Moteur ?",
+            icon="question",
+            option_1="Oui",
+            option_2="Non"
+        )
+        
+        if result.get() == "Oui":
+            # Switch to Interventions page
+            self.show_Interventions_page()
+            self.tab_to_open = "Chaine de Distribution"
+            # After switching pages, fill the form
+            self.after(1000, self.open_huile_form)
+
+    def open_huile_form(self):
+        """Directly trigger the add mode"""
+        if hasattr(self, 'Huile_frame') and hasattr(self.Huile_frame, 'public_add_mode'):
+            try:
+                self.Huile_frame.public_add_mode()
+                self.after(500, self.fill_huile_popup)
+            except Exception as e:
+                print(f"Error triggering add mode: {e}")
+                self.after(500, self.open_huile_form)
+        else:
+            print("Huile frame not ready, retrying...")
+            self.after(500, self.open_huile_form)
+    
+    def fill_huile_popup(self):
+        # Get vehicle data
+        connection = self.get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT marque, type, Immatriculation, index_veh FROM Vehicule WHERE vehicule_id = ?", 
+            (self.selected_vehicule_id,)
+        )
+        marque, type, immat, index = cursor.fetchone()
+        cursor.close()
+        connection.close()
+
+        # Find the popup window
+        for child in self.winfo_children():
+            if isinstance(child, ctk.CTkToplevel) and "Add New Record" in child.title():
+                # Find and fill the form fields (same as before)
+                entries = []
+                comboboxes = []
+                
+                def find_widgets(widget):
+                    if isinstance(widget, ctk.CTkEntry):
+                        entries.append(widget)
+                    elif isinstance(widget, ctk.CTkComboBox):
+                        comboboxes.append(widget)
+                    for child in widget.winfo_children():
+                        find_widgets(child)
+
+                find_widgets(child)
+
+                # Sort widgets by position
+                entries.sort(key=lambda e: e.winfo_y())
+                comboboxes.sort(key=lambda c: c.winfo_y())
+
+                try:
+                    # Fill type combobox
+                    if comboboxes:
+                        comboboxes[0].set(f"{type} - {immat}")
+                    
+                    # Fill other fields
+                    if len(entries) > 1:  # Marque
+                        entries[0].configure(state="normal")
+                        entries[0].delete(0, 'end')
+                        entries[0].insert(0, marque)
+                        entries[0].configure(state="readonly")
+                        
+                    if len(entries) > 2:  # Immatriculation
+                        entries[1].configure(state="normal")
+                        entries[1].delete(0, 'end')
+                        entries[1].insert(0, immat)
+                        entries[1].configure(state="readonly")
+                        
+                    if len(entries) > 3:  # Date
+                        entries[2].delete(0, 'end')
+                        entries[2].insert(0, datetime.date.today().strftime('%Y-%m-%d'))
+                        
+                    if len(entries) > 6:  # Index
+                        entries[3].delete(0, 'end')
+                        entries[3].insert(0, index)
+                        
+                except Exception as e:
+                    print("Error filling form:", e)
+                break
     def go_to_vehicle(self,notification_type, id_value):
             """Find, select, and highlight a vehicle in the Treeview."""
             if notification_type == "vehicle":
@@ -483,7 +808,7 @@ class MainPage(ctk.CTk):
                     'assurance': assurance_date,
                     'control': control_date
                 }
-            elif notification_type == "huile":
+            '''elif notification_type == "huile":
                 # Handle oil change notification
                 self.show_Interventions_page()
                 self.notification_popup.destroy()
@@ -532,7 +857,7 @@ class MainPage(ctk.CTk):
                             connection.commit()
                         finally:
                             connection.close()
-                        break
+                        break'''
     def check_highlight(self):
         """Re-check highlighted vehicle status after updates"""
         for vehicule_id in list(self.highlighted_rows.keys()):
@@ -562,7 +887,7 @@ class MainPage(ctk.CTk):
             font=("Helvetica", 14, "bold"),
         )
         
-        button.pack(fill="x" ,pady=10, padx=10)
+        button.pack(fill="x" ,pady=(0,20), padx=10)
         self.nav_buttons[key] = button
         
     
@@ -596,29 +921,29 @@ class MainPage(ctk.CTk):
         # Create a frame for the tab content
         tab_content_frame = ctk.CTkFrame(self.content_frame, fg_color="#050505")
         tab_content_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        tab_buttons = {}
+        self.tab_buttons = {}
         default_fg_color = "#2b2b2b"  # Default button color
         highlight_color = "#534AE1"  # Highlight color
         # Function to switch tabs
         def switch_tab(tab_name):
-            for button in tab_buttons.values():
+            for button in self.tab_buttons.values():
                 button.configure(fg_color=default_fg_color,font=("poppins", 14))
         
             # Highlight the selected button
-            if tab_name in tab_buttons:
-                tab_buttons[tab_name].configure(fg_color=highlight_color,font=("poppins", 14,"bold"))
+            if tab_name in self.tab_buttons:
+                self.tab_buttons[tab_name].configure(fg_color=highlight_color,font=("poppins", 14,"bold"))
                 # Hide all frames
             for widget in tab_content_frame.winfo_children():
                 widget.pack_forget()
             
             # Show the selected frame
             if tab_name == "Huile Moteur":
-                Huile_frame.pack(fill="both", expand=True)
+                self.Huile_frame.pack(fill="both", expand=True)
             elif tab_name == "Chaine de Distribution":
-                Chaine_frame.pack(fill="both", expand=True)
+                self.Chaine_frame.pack(fill="both", expand=True)
                 
             elif tab_name == "Courroie Moteur":
-                Courroie_frame.pack(fill="both", expand=True)
+                self.Courroie_frame.pack(fill="both", expand=True)
             elif tab_name == "Glaciol":
                 glaciol_frame.pack(fill="both", expand=True)
             elif tab_name == "Liquide de Frein":
@@ -628,7 +953,7 @@ class MainPage(ctk.CTk):
 
         # Create tab buttons
         tab_names = ["Huile Moteur", "Chaine de Distribution", "Courroie Moteur", "Glaciol", "Liquide de Frein","battery"]
-        tab_icons = [self.huile_icon,self.chaine_icon,None,self.glaciol_icon,self.frein_icon,self.batterie_icon]
+        tab_icons = [self.huile_icon,self.chaine_icon,self.corrie_icon,self.glaciol_icon,self.frein_icon,self.batterie_icon]
         for name,image in zip(tab_names , tab_icons):
             
                 button = ctk.CTkButton(
@@ -644,17 +969,21 @@ class MainPage(ctk.CTk):
                     command=lambda n=name: switch_tab(n),  # Switch to the selected tab
                 )
                 button.pack(side="left", padx=5, pady=5)
-                tab_buttons[name] = button
+                self.tab_buttons[name] = button
         # Create frames for each tab
         glaciol_frame = GlaciolPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
         Liquide_frame = Liquide_de_freinPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
-        Huile_frame = Huile_MoteurPage(master=tab_content_frame,user_role=self.user_role , fg_color="#050505")
-        Chaine_frame = Chaine_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
-        Courroie_frame = Courroie_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
+        self.Huile_frame = Huile_MoteurPage(master=tab_content_frame,user_role=self.user_role , fg_color="#050505")
+        self.Chaine_frame = Chaine_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
+        self.Courroie_frame = Courroie_MoteurPage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
         battery_frame = batterypage(master=tab_content_frame,user_role=self.user_role, fg_color="#050505")
 
         # Show the first tab by default
-        switch_tab("Huile Moteur")
+        if hasattr(self, 'tab_to_open'):
+            switch_tab(self.tab_to_open)
+            delattr(self, 'tab_to_open')  # Clear the tab request
+        else:
+            switch_tab("Huile Moteur") 
 
         self.set_active_button("Interventions")
         

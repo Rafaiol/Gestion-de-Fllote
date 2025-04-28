@@ -27,6 +27,7 @@ class MainPage(ctk.CTkFrame):
     def __init__(self, master=None,user_role=None, **kwargs):
         super().__init__(master, **kwargs)
         self.user_role = user_role
+        self.main_frame = self
         self.pack(fill="both", expand=True)
         
         self.existing_button_frames = {}
@@ -38,6 +39,7 @@ class MainPage(ctk.CTkFrame):
         self.supprimer_icon = self.load_icon("Image_Assets/trash.png", size=(20, 20))
         self.Update_icon = self.load_icon("Image_Assets/edit.png", size=(20, 20))
         self.Inspect_icon = self.load_icon("Image_Assets/search1.png", size=(20, 20))
+        self.excel_icon = self.load_icon("Image_Assets/excel.png", size=(25, 25))
         
         self.page_frame = ctk.CTkFrame(self, corner_radius=10,fg_color="#050505")
         self.page_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
@@ -107,7 +109,7 @@ class MainPage(ctk.CTkFrame):
             # Create popup window
             popup = ctk.CTkToplevel()
             popup.title("Add New Record")
-            popup.overrideredirect(True)
+            
             popup.geometry("600x600")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
@@ -217,12 +219,13 @@ class MainPage(ctk.CTkFrame):
                     print(f"{idx}: {e.get()}")
                 print(values[1])
                 query1 = "INSERT INTO huile_moteur (vehicule_id,date_huile,nature_huile,Désignation,Index_veh, litre,Index_veh_old,Num_facture,nom_fournisseur,Technicien) VALUES (?, convert(date,?), ?, ?, ?, ?, ?, ?, ?, ?)"
-                
+                query2 = "UPDATE Vehicule SET index_huile = ? WHERE vehicule_id = ?"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
                     cursor.execute(query1, values)
-                    #cursor.execute(query2, values[5])
+                    new_index = entries[6].get().strip()
+                    cursor.execute(query2, (new_index, vehicule_id))
                     connection.commit()
                     fetch_all_data(tree, tab)
                     
@@ -370,15 +373,15 @@ class MainPage(ctk.CTkFrame):
         def filter_window(tree,*args):
             filter_popup = ctk.CTkToplevel(self)
             filter_popup.title("Filter")
-            filter_popup.geometry("450x500")
-            filter_popup.overrideredirect(True)
+            filter_popup.geometry("450x400")
+            
             filter_popup.resizable(False, False)
             filter_popup.transient(self.winfo_toplevel())
             filter_popup.grab_set()  # Make popup modal
             #pywinstyles.apply_style(filter_popup, "aero")
             main_frame = ctk.CTkFrame(filter_popup, corner_radius=6)
             main_frame.pack(expand=True, fill="both", padx=10, pady=10)
-            presets_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            '''presets_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
             presets_frame.pack(fill="x", pady=(0, 15))
             
             ctk.CTkLabel(presets_frame, text=" Filters Rapides:", font=("Poppins", 16,)).pack(anchor="w",padx=5, pady=(10, 10))
@@ -395,9 +398,9 @@ class MainPage(ctk.CTkFrame):
                     hover_color="#534ae1",
                     command=lambda q=query_part: apply_preset_filter(tree, q, filter_popup)
                 )
-                btn.pack(side="left", padx=5)
+                btn.pack(side="left", padx=5)'''
             # Column headings for combobox options
-            column_options = ["", "Marque", "Type", "Immatriculation", "Service Utilisateur","Date d'assurance","Date control technique","Carburant", "Conducteur",]
+            column_options = ["", "Marque", "Type", "Immatriculation", "Date de Changement","Nature d'Huile","Désignation","Index" ,"Litre" ,"Num Facture","Nom Fournisseur","Technicien"]
             
             # Create filter rows (combobox + entry)
             filter_rows = []
@@ -445,11 +448,14 @@ class MainPage(ctk.CTkFrame):
                             "Marque": "marque",
                             "Type": "type",
                             "Immatriculation": "Immatriculation",
-                            "Service Utilisateur": "service_utilisateur",
-                            "Date d'assurance": "date_assurance",
-                            "Date control technique": "date_control_technique",
-                            "Carburant": "carburant",
-                            "Conducteur": "conducteur"
+                            "Date de Changement": "date_huile",
+                            "Nature d'Huile": "nature_huile",
+                            "Désignation": "Désignation",
+                            "Index": "Index_veh",
+                            "Litre": "litre ",
+                            "Num Facture": "Num_facture",
+                            "Nom Fournisseur": "Nom_fournisseur",
+                            "Technicien": "Technicien",
                         }
                         db_column = column_mapping.get(column, column)
                         conditions.append(f"{db_column} LIKE ?")
@@ -462,21 +468,22 @@ class MainPage(ctk.CTkFrame):
                     # Build the WHERE clause with AND between conditions
                     where_clause = " AND ".join(conditions)
                     query = f"""
-                        SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
-                        FROM Vehicule
+                        SELECT  H.num_huile, v.marque, v.type, v.Immatriculation,H.date_huile,H.nature_huile,H.Désignation,H.Index_veh,H.litre  
+                        FROM Vehicule v
+                        INNER JOIN huile_moteur H ON v.vehicule_id = H.vehicule_id
                         WHERE {where_clause}
                     """
                     
                     fetch_data(tree, query, params)
                     filter_popup.destroy()
-            def apply_preset_filter(tree, query_part, window):
+            '''def apply_preset_filter(tree, query_part, window):
                 query = f"""
                     SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
                     FROM Vehicule
                     WHERE {query_part}
                 """
                 fetch_data(tree, query)
-                window.destroy()
+                window.destroy()'''
             # Buttons
             cancel_btn = ctk.CTkButton(
                 button_frame, 
@@ -516,7 +523,31 @@ class MainPage(ctk.CTkFrame):
                         INNER JOIN huile_moteur H ON v.vehicule_id = H.vehicule_id
                 """
             fetch_data(tree, query)
-
+            # Check for highlighted rows from notifications
+            if hasattr(self, "main_app") and self.main_app is not None:
+                if hasattr(self.main_app, "highlighted_huile_rows"):
+                    connection = get_connection()
+                    cursor = connection.cursor()
+                    
+                    for num_huile in self.main_app.highlighted_huile_rows:
+                        cursor.execute(
+                            "SELECT Index_veh, Index_veh_old FROM huile_moteur WHERE num_huile = ?",
+                            (num_huile,)
+                        )
+                        index_veh, index_veh_old = cursor.fetchone()
+                        
+                        # Check if still needs highlighting
+                        if index_veh - index_veh_old >= 10000:
+                            for item in tree.get_children():
+                                values = tree.item(item)['values']
+                                if values and str(values[0]) == str(num_huile):
+                                    tree.item(item, tags=("highlighted",))
+                        else:
+                            # Remove from tracking if condition is fixed
+                            del self.main_app.highlighted_huile_rows[num_huile]
+                            tree.item(item, tags=("normalrow",))
+                    
+                    connection.close()
         
         def delete_selected( tree, tab,row_id):
             '''selected_items = tree.selection()  # Get all selected items
@@ -1034,7 +1065,7 @@ class MainPage(ctk.CTkFrame):
                 if 'connection' in locals():
                     connection.close()
 
-            
+        
         tab = "huile_moteur"
         # Style
         style = ttk.Style()
@@ -1043,7 +1074,7 @@ class MainPage(ctk.CTkFrame):
         borderwidth=0,
         font=('Poppins', 12))
         style.configure("Treeview.Heading",  background="#171717",rowheight=50, foreground="#cccccc",relief="flat",borderwidth=0,
-    font=('Poppins', 14, 'bold'),
+    font=('Poppins', 12, 'bold'),
     padding=5)
         
         
@@ -1064,9 +1095,6 @@ class MainPage(ctk.CTkFrame):
     relief=[('pressed', 'groove'), ('!pressed', 'groove')]
     )
 
-
-
-# Modern scrollbar styling
         
 
 
@@ -1079,7 +1107,7 @@ class MainPage(ctk.CTkFrame):
     style="Treeview",
     selectmode="extended"
     )
-        self.tree=tree
+        
         sort_direction = {
         "col1": None,
         "col2": None, 
@@ -1186,21 +1214,22 @@ class MainPage(ctk.CTkFrame):
         if self.user_role == "technicien":
             self.add_button.configure(state="disabled", fg_color="gray")
         self.export_button = ctk.CTkButton(
-                self.buttons_frame,
-                text="Export to Excel",
-                fg_color="#4CAF50",  # Green button
+                self.buttons_frame,image=self.excel_icon,width=30,height=30,
+                text="Export ",compound="left",
+                fg_color="#02723b",font=("poppins",12),  # Green button
                 corner_radius=30,
                 command=export_visible_to_excel
             )
         self.export_button.grid(row=0, column=3, padx=10, pady=10)
-        self.filter_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Filter",image=self.filter_icon,compound="left",fg_color="transparent",corner_radius=30, command=lambda: filter_search(tree, tab))
+        self.filter_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Filter",image=self.filter_icon,compound="left",fg_color="transparent",corner_radius=30, command=lambda: filter_window(tree))
         self.filter_button.grid(row=0, column=4, padx=10, pady=10)
 
         self.refresh_button = ctk.CTkButton(self.buttons_frame,width=30 ,text="Refresh",image=self.refresh_icon,compound="left",fg_color="transparent",corner_radius=30,command=lambda: fetch_all_data(tree, tab))
         self.refresh_button.grid(row=0, column=2, padx=10, pady=10)
+        self.tree=tree
         
-        
-        
+        self.tab = tab
+        self.public_add_mode = lambda: start_add_mode(self.tree, self.tab)
          
         
         

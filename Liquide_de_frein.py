@@ -34,6 +34,7 @@ class MainPage(ctk.CTkFrame):
         self.supprimer_icon = self.load_icon("Image_Assets/trash.png", size=(20, 20))
         self.Update_icon = self.load_icon("Image_Assets/edit.png", size=(20, 20))
         self.Inspect_icon = self.load_icon("Image_Assets/search1.png", size=(20, 20))
+        self.excel_icon = self.load_icon("Image_Assets/excel.png", size=(25, 25))
         
         self.page_frame = ctk.CTkFrame(self, corner_radius=10,fg_color="#050505")
         self.page_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
@@ -103,7 +104,7 @@ class MainPage(ctk.CTkFrame):
             # Create popup window
             popup = ctk.CTkToplevel()
             popup.title("Add New Record")
-            popup.overrideredirect(True)
+            
             popup.geometry("700x450")
             popup.resizable(False, False)
             popup.transient(tree.winfo_toplevel())  # Make popup transient to main window
@@ -295,41 +296,24 @@ class MainPage(ctk.CTkFrame):
         def filter_window(tree,*args):
             filter_popup = ctk.CTkToplevel(self)
             filter_popup.title("Filter")
-            filter_popup.geometry("450x500")
-            filter_popup.overrideredirect(True)
+            filter_popup.geometry("450x400")
+            
             filter_popup.resizable(False, False)
             filter_popup.transient(self.winfo_toplevel())
             filter_popup.grab_set()  # Make popup modal
             #pywinstyles.apply_style(filter_popup, "aero")
             main_frame = ctk.CTkFrame(filter_popup, corner_radius=6)
             main_frame.pack(expand=True, fill="both", padx=10, pady=10)
-            presets_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-            presets_frame.pack(fill="x", pady=(0, 15))
             
-            ctk.CTkLabel(presets_frame, text=" Filters Rapides:", font=("Poppins", 16,)).pack(anchor="w",padx=5, pady=(10, 10))
-            PRESETS = [
-            ("Assurance Expiré", "date_assurance <= CAST(GETDATE() AS DATE)"),
-            ("Control Expiré ", "date_control_technique <= CAST(GETDATE() AS DATE)")]
-            for preset_text, query_part in PRESETS:
-                btn = ctk.CTkButton(
-                    presets_frame,
-                    text=preset_text,
-                    width=120,
-                    height=30,
-                    fg_color="#3a3a3a",
-                    hover_color="#534ae1",
-                    command=lambda q=query_part: apply_preset_filter(tree, q, filter_popup)
-                )
-                btn.pack(side="left", padx=5)
             # Column headings for combobox options
-            column_options = ["", "Marque", "Type", "Immatriculation", "Service Utilisateur","Date d'assurance","Date control technique","Carburant", "Conducteur",]
+            column_options = ["", "Marque", "Type", "Immatriculation", "Date de Changement", "Litre" ,"Num Facture","Nom Fournisseur","Technicien"]
             
             # Create filter rows (combobox + entry)
             filter_rows = []
             ctk.CTkLabel(main_frame, text="Filtres Manuels:", font=("Poppins", 16 )).pack(anchor="w",padx=(5,0))
             label_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
             label_frame.pack(fill="x", pady=(0,5))
-            ctk.CTkLabel(label_frame, text="Column :",font=("poppins",14)).pack(side="left", padx=(5,100),pady=(25,0))
+            ctk.CTkLabel(label_frame, text="Column :",font=("poppins",14)).pack(side="left", padx=(5,130),pady=(25,0))
             ctk.CTkLabel(label_frame, text="Search Value :",font=("poppins",14)).pack(side="left",pady=(25,0))
             for i in range(3):
                 row_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -370,11 +354,11 @@ class MainPage(ctk.CTkFrame):
                             "Marque": "marque",
                             "Type": "type",
                             "Immatriculation": "Immatriculation",
-                            "Service Utilisateur": "service_utilisateur",
-                            "Date d'assurance": "date_assurance",
-                            "Date control technique": "date_control_technique",
-                            "Carburant": "carburant",
-                            "Conducteur": "conducteur"
+                            "Date de Changement": "date_liquide",
+                            "Litre": "litre",
+                            "Num Facture": "Num_facture",
+                            "Nom Fournisseur": "Nom_fournisseur",
+                            "Technicien": "Technicien"
                         }
                         db_column = column_mapping.get(column, column)
                         conditions.append(f"{db_column} LIKE ?")
@@ -387,21 +371,15 @@ class MainPage(ctk.CTkFrame):
                     # Build the WHERE clause with AND between conditions
                     where_clause = " AND ".join(conditions)
                     query = f"""
-                        SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
-                        FROM Vehicule
+                        SELECT  L.num_liquide, v.marque, v.type, v.Immatriculation,L.date_liquide,L.litre  
+                        FROM Vehicule v
+                        INNER JOIN Liquide_de_frin L ON v.vehicule_id = L.vehicule_id
                         WHERE {where_clause}
                     """
                     
                     fetch_data(tree, query, params)
                     filter_popup.destroy()
-            def apply_preset_filter(tree, query_part, window):
-                query = f"""
-                    SELECT vehicule_id, marque, type, Immatriculation, service_utilisateur, conducteur  
-                    FROM Vehicule
-                    WHERE {query_part}
-                """
-                fetch_data(tree, query)
-                window.destroy()
+           
             # Buttons
             cancel_btn = ctk.CTkButton(
                 button_frame, 
@@ -902,7 +880,7 @@ class MainPage(ctk.CTkFrame):
         borderwidth=0,
         font=('Poppins', 12))
         style.configure("Treeview.Heading",  background="#171717",rowheight=50, foreground="#cccccc",relief="flat",borderwidth=0,
-    font=('Poppins', 14, 'bold'),
+    font=('Poppins', 12, 'bold'),
     padding=5)
         
         
@@ -1024,14 +1002,14 @@ class MainPage(ctk.CTkFrame):
         if self.user_role == "technicien":
             self.add_button.configure(state="disabled", fg_color="gray")
         self.export_button = ctk.CTkButton(
-                self.buttons_frame,
-                text="Export to Excel",
-                fg_color="#4CAF50",  # Green button
+                self.buttons_frame,image=self.excel_icon,width=30,height=30,
+                text="Export ",compound="left",
+                fg_color="#02723b",font=("poppins",12),  # Green button
                 corner_radius=30,
                 command=export_visible_to_excel
             )
         self.export_button.grid(row=0, column=3, padx=10, pady=10)
-        self.filter_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Filter",image=self.filter_icon,compound="left",fg_color="transparent",corner_radius=30, command=lambda: filter_search(tree, tab))
+        self.filter_button = ctk.CTkButton(self.buttons_frame,width=25,height=25,text="Filter",image=self.filter_icon,compound="left",fg_color="transparent",corner_radius=30, command=lambda: filter_window(tree))
         self.filter_button.grid(row=0, column=4, padx=10, pady=10)
 
         self.refresh_button = ctk.CTkButton(self.buttons_frame,width=30 ,text="Refresh",image=self.refresh_icon,compound="left",fg_color="transparent",corner_radius=30,command=lambda: fetch_all_data(tree, tab))
