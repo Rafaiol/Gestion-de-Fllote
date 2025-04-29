@@ -24,8 +24,13 @@ ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 class MainPage(ctk.CTk):
     def __init__(self,user_role = None ,full_name = None):
         super().__init__()
-        self.geometry("800x600")
-        self.title("Main Page")
+        self.attributes('-fullscreen', False)
+        self.geometry("{0}x{1}+0+0".format(
+        self.winfo_screenwidth(), 
+        self.winfo_screenheight()))# Makes window full screen
+        self.resizable(False, False)
+        self.title("Gestion De Fllote")
+        self.iconbitmap("Image_Assets/Logo.ico")
         corner_radius.set(self, style="round-small")
         #pywinstyles.apply_style(self, "aero")
         self.user_role = user_role
@@ -54,9 +59,9 @@ class MainPage(ctk.CTk):
         self.glaciol_icon = self.load_icon("Image_Assets/glaciol.png", size=(30, 30))
         self.batterie_icon = self.load_icon("Image_Assets/batterie.png", size=(30, 30))
         # Navigation Menu Frame
-        self.menu_frame = ctk.CTkFrame(self, width=150, corner_radius=5,fg_color="#08090b")
+        self.menu_frame = ctk.CTkFrame(self, width=150, corner_radius=5,fg_color="#212223")
         self.menu_frame.pack(side="left", fill="y")
-        self.notification_frame = ctk.CTkFrame(self,height=45,fg_color="#08090b",corner_radius=5)
+        self.notification_frame = ctk.CTkFrame(self,height=45,fg_color="#212223",corner_radius=5)
         self.notification_frame.pack(side="top" ,fill="x")
         self.notification_frame.pack_propagate(False)  # Prevents the frame from expanding
          
@@ -64,7 +69,7 @@ class MainPage(ctk.CTk):
         # Content Frame
         self.content_frame = ctk.CTkFrame(self, corner_radius=10,fg_color="#050505")
         self.content_frame.pack(side="right", fill="both", expand=True)
-        self.logo_frame = ctk.CTkFrame(self.menu_frame,fg_color="#08090b",corner_radius=0)
+        self.logo_frame = ctk.CTkFrame(self.menu_frame,fg_color="#212223",corner_radius=0)
         self.logo_frame.pack(side="top",pady=(0,20))
         self.logo_label = ctk.CTkLabel(self.logo_frame, text="", image=self.logo_icon)
         self.logo_label.grid(row=0,column=0,rowspan=2,padx=(0,5))
@@ -465,9 +470,10 @@ class MainPage(ctk.CTk):
             self.show_Interventions_page()
             self.tab_to_open = "Courroie Moteur"
             
-            # After switching pages, fill the form
-            self.after(1000, self.open_courroie_form)
-
+            self.after(500, lambda: [
+            self.switch_to_tab("Courroie Moteur"),
+            self.after(300, self.open_courroie_form)
+        ])
     def open_courroie_form(self):
         """Directly trigger the add mode for Courroie"""
         if hasattr(self, 'Courroie_frame') and hasattr(self.Courroie_frame, 'public_add_mode'):
@@ -561,8 +567,10 @@ class MainPage(ctk.CTk):
             # Switch to Interventions page
             self.show_Interventions_page()
             self.tab_to_open = "Chaine de Distribution"
-            # After switching pages, fill the form
-            self.after(1000, self.open_chaine_form)
+            self.after(500, lambda: [
+            self.switch_to_tab("Chaine de Distribution"),
+            self.after(300, self.open_chaine_form)
+        ])
 
     def open_chaine_form(self):
         """Directly trigger the add mode for Chaine"""
@@ -657,7 +665,10 @@ class MainPage(ctk.CTk):
             self.show_Interventions_page()
             self.tab_to_open = "Chaine de Distribution"
             # After switching pages, fill the form
-            self.after(1000, self.open_huile_form)
+            self.after(500, lambda: [
+            self.switch_to_tab("Huile Moteur"),
+            self.after(300, self.open_huile_form)
+        ])
 
     def open_huile_form(self):
         """Directly trigger the add mode"""
@@ -734,6 +745,10 @@ class MainPage(ctk.CTk):
                 except Exception as e:
                     print("Error filling form:", e)
                 break
+    def switch_to_tab(self, tab_name):
+        """Programmatically click the tab button"""
+        if hasattr(self, 'tab_buttons') and tab_name in self.tab_buttons:
+            self.tab_buttons[tab_name].invoke()
     def go_to_vehicle(self,notification_type, id_value):
             """Find, select, and highlight a vehicle in the Treeview."""
             if notification_type == "vehicle":

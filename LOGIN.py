@@ -80,8 +80,17 @@ class LoginForm(ctk.CTk):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         # Configure window and theme
-        self.title("Modern Login")
+        self.title("Login")
+        self.iconbitmap("Image_Assets/Logo.ico")
         self.geometry("400x600")
+        self.update_idletasks()
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        window_width = 400
+        window_height = 600
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
         self.configure(fg_color="#08090b")
         

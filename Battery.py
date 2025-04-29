@@ -150,7 +150,7 @@ class MainPage(ctk.CTkFrame):
                     
                     type_combo.pack(fill="x")
                     entries.append(type_combo)
-                    type_combo.bind('<FocusIn>', lambda : type_combo.configure(border_color="#561B8D"))
+                    type_combo.bind('<FocusIn>', lambda : type_combo.configure(border_color="#534AE1"))
                     
                     
                     
@@ -160,7 +160,7 @@ class MainPage(ctk.CTkFrame):
                     entry.configure(state="readonly")
                     entries.append(entry)
                     if not fields[i] in ["Marque","Type", "Immatriculation"]:
-                        entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
+                        entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#534AE1"))
                         entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
                         entry.configure(state="normal")
             
@@ -546,7 +546,7 @@ class MainPage(ctk.CTkFrame):
                 
                 entries.append(entry)
                 if not fields[i] in ["Marque","Type", "Immatriculation"]:
-                    entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
+                    entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#534AE1"))
                     entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
                     entry.configure(state="readonly")
             # Populate entries with current values
@@ -1020,7 +1020,7 @@ class MainPage(ctk.CTkFrame):
         
         self.search_entry=ctk.CTkEntry(self.buttons_frame,corner_radius=20,border_width=1,border_color="",placeholder_text="Search")
         self.search_entry.grid(row=0, column=0, pady=10,padx=(0,320),sticky="w",ipadx=150)
-        self.search_entry.bind('<FocusIn>', lambda e, entry=self.search_entry: entry.configure(border_color="#561B8D"))
+        self.search_entry.bind('<FocusIn>', lambda e, entry=self.search_entry: entry.configure(border_color="#534AE1"))
         self.search_entry.bind('<FocusOut>', lambda e, entry=self.search_entry: entry.configure(border_color=""))
         self.search_entry.bind('<KeyRelease>', lambda e: filter_search(tree))
         

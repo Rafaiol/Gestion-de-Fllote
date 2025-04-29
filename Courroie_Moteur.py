@@ -152,7 +152,7 @@ class MainPage(ctk.CTkFrame):
                     
                     type_combo.pack(fill="x")
                     entries.append(type_combo)
-                    type_combo.bind('<FocusIn>', lambda : type_combo.configure(border_color="#561B8D"))
+                    type_combo.bind('<FocusIn>', lambda : type_combo.configure(border_color="#534AE1"))
                 
                     
                 else:
@@ -161,7 +161,7 @@ class MainPage(ctk.CTkFrame):
                     entry.configure(state="readonly")
                     entries.append(entry)
                     if not fields[i] in ["Marque","Type", "Immatriculation"]:
-                        entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
+                        entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#534AE1"))
                         entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
                         entry.configure(state="normal")
                 
@@ -498,11 +498,11 @@ class MainPage(ctk.CTkFrame):
                 return
 
             record_id = item_values[0]  # Assuming the first column is the unique ID
-            new_values = [entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip(),entries[8].get().strip(),entries[9].get().strip(),entries[10].get().strip()]
-            if any(value == '' for value in new_values):
-                messagebox.showwarning("Warning", "Please fill all fields")
-                return
-
+            new_values = [entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),entries[6].get().strip(),entries[7].get().strip(),entries[8].get().strip()]
+            if any(value == '' for value in new_values[0:2]):
+                messagebox.showerror("Error", "Please fill all fields")
+                return False
+            
             query = f"UPDATE {tab} SET  date_courroie = ?,Désignation = ?,Index_veh = ?,Num_facture = ?,nom_fournisseur = ?,Technicien = ? WHERE num_courroie = ?"
             try:
                 connection = get_connection()
@@ -516,6 +516,7 @@ class MainPage(ctk.CTkFrame):
 
                 # Refresh treeview
                 fetch_all_data(tree, tab)
+                return True
                 print("Record updated successfully.")
             except pyodbc.Error as e:
                 print(f"Error: {e}")
@@ -582,17 +583,17 @@ class MainPage(ctk.CTkFrame):
                 entry.pack(fill="x")
                 entries.append(entry)
                 if not fields[i] in ["Marque","Type", "Immatriculation"]:
-                    entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#561B8D"))
+                    entry.bind('<FocusIn>', lambda e, entry=entry: entry.configure(border_color="#534AE1"))
                     entry.bind('<FocusOut>', lambda e, entry=entry: entry.configure(border_color=""))
                     entry.configure(state="readonly")
             # Populate entries with current values
-            for entry, value in zip(entries, full_data):
+            for i,(entry, value) in enumerate(zip(entries, full_data)):
                 if isinstance(entry, ctk.CTkComboBox):
                     continue
                 entry.configure(state="normal")
                 entry.delete(0, 'end')
                 entry.insert(0, str(value))
-                if entry.cget("state") == "readonly":
+                if i in [0, 1, 2]:  # Assuming these are the first 3 fields
                     entry.configure(state="readonly")
 
             # Button frame at bottom right
@@ -600,8 +601,8 @@ class MainPage(ctk.CTkFrame):
             button_frame.grid(row=7, column=0, columnspan=2, padx=10, pady=10, sticky="e")
 
             def confirm_update():
-                update_selected(tree, tab, entries,row_id)
-                popup.destroy()
+                if update_selected(tree, tab, entries,row_id): 
+                 popup.destroy()
 
             # Create buttons
             cancel_btn = ctk.CTkButton(
@@ -1048,7 +1049,7 @@ class MainPage(ctk.CTkFrame):
         
         self.search_entry=ctk.CTkEntry(self.buttons_frame,corner_radius=20,border_width=1,border_color="",placeholder_text="Search")
         self.search_entry.grid(row=0, column=0, pady=10,padx=(0,320),sticky="w",ipadx=150)
-        self.search_entry.bind('<FocusIn>', lambda e, entry=self.search_entry: entry.configure(border_color="#561B8D"))
+        self.search_entry.bind('<FocusIn>', lambda e, entry=self.search_entry: entry.configure(border_color="#534AE1"))
         self.search_entry.bind('<FocusOut>', lambda e, entry=self.search_entry: entry.configure(border_color=""))
         self.search_entry.bind('<KeyRelease>', lambda e: filter_search(tree))
         

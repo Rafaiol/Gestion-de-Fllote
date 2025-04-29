@@ -141,7 +141,7 @@ class MainPage(ctk.CTkFrame):
                     messagebox.showerror("Error", "Please fill all fields")
                     return
                 check_query = "SELECT COUNT(*) FROM Vehicule WHERE Immatriculation = ?"
-                insert_query = "INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur],Anne,index_veh, [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                insert_query = f"INSERT INTO {tab} (marque, type, Immatriculation, [service_utilisateur],Anne,index_veh, [date_assurance], carburant,[date_control_technique] , conducteur) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 try:
                     connection = get_connection()
                     cursor = connection.cursor()
@@ -149,7 +149,7 @@ class MainPage(ctk.CTkFrame):
                     exists = cursor.fetchone()[0]
 
                     if exists:
-                        messagebox.showwarning("Doublon détecté", "🚫 Ce véhicule existe déjà dans la base de données.")
+                        messagebox.showwarning("Doublon détecté", " Ce véhicule existe déjà dans la base de données.")
                         return
                     
                     cursor.execute(insert_query, values)
@@ -489,12 +489,12 @@ class MainPage(ctk.CTkFrame):
                 return
 
             record_id = item_values[0]  # Assuming the first column is the unique ID
-            new_values = [entries[0].get().strip(),entries[1].get().strip(),entries[2].get().strip(),entries[3].get().strip(),entries[4].get().strip(),entries[5].get().strip(),datetime.strptime(entries[6].get(), '%Y-%m-%d').date()if entries[6].get() else None,entries[7].get(),datetime.strptime(entries[8].get(), '%Y-%m-%d').date() if entries[8].get().strip() else None,entries[9].get().strip()]
-            if any(value == '' for value in new_values):
+            new_values = [entries[0].get().strip(),entries[1].get().strip(),entries[2].get().strip(),entries[3].get().strip(),entries[4].get().strip(),datetime.strptime(entries[5].get(), '%Y-%m-%d').date()if entries[5].get() else None,datetime.strptime(entries[6].get(), '%Y-%m-%d').date() if entries[6].get().strip() else None,entries[7].get().strip(),entries[8].get(),entries[9].get().strip()]
+            if any(value == '' for value in new_values[0:6]):
                 messagebox.showwarning("Warning", "Please fill all fields")
                 return
 
-            query = f"UPDATE {tab}  SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,Anne = ?,index_veh = ?,[date_assurance] = ?, carburant = ?,[date_control_technique] = ?, conducteur = ? WHERE vehicule_id = ?"
+            query = f"UPDATE {tab}  SET marque = ?, type = ?, Immatriculation = ?, service_utilisateur = ?,index_veh = ?,[date_assurance] = ?,[date_control_technique] = ?, carburant = ?,Anne = ?, conducteur = ? WHERE vehicule_id = ?"
             try:
                 connection = get_connection()
                 cursor = connection.cursor()
@@ -514,7 +514,7 @@ class MainPage(ctk.CTkFrame):
             current_values = tree.item(row_id)['values']
             glac_num = current_values[0]
             # Fetch complete data using existing pattern
-            query = """SELECT  marque, type, Immatriculation,service_utilisateur,[Anne],index_veh,[date_assurance],[carburant],[date_control_technique],conducteur  
+            query = """SELECT  marque, type, Immatriculation,service_utilisateur,index_veh,[date_assurance],[date_control_technique],[carburant],[Anne],conducteur  
                     FROM Vehicule
                     WHERE vehicule_id = ?"""
             
@@ -550,8 +550,8 @@ class MainPage(ctk.CTkFrame):
             main_frame.grid_rowconfigure(4, weight=1)
 
             # Fields and entries
-            fields = ["Marque", "Type", "Immatriculation","Service Utilisateur" , "Anne","Index",
-                    "Date Assurance", "Carburant","Date Control Technique " , "Conducteur"]
+            fields = ["Marque", "Type", "Immatriculation","Service Utilisateur" , "Index",
+                    "Date Assurance","Date Control Technique " , "Anne","Carburant", "Conducteur"]
             entries = []
 
             # Create entries with improved layout
@@ -888,7 +888,7 @@ class MainPage(ctk.CTkFrame):
                     connection.close()
 
             
-        tab = "Vehicule "
+        tab = "Vehicule"
         # Style
         style = ttk.Style()
         style.theme_use("classic")
@@ -1014,7 +1014,7 @@ class MainPage(ctk.CTkFrame):
         
         self.search_entry=ctk.CTkEntry(self.buttons_frame,corner_radius=20,border_width=1,border_color="",placeholder_text="Search")
         self.search_entry.grid(row=0, column=0, pady=10,padx=(0,320),sticky="w",ipadx=150)
-        self.search_entry.bind('<FocusIn>', lambda e, entry=self.search_entry: entry.configure(border_color="#561B8D"))
+        self.search_entry.bind('<FocusIn>', lambda e, entry=self.search_entry: entry.configure(border_color="#534AE1"))
         self.search_entry.bind('<FocusOut>', lambda e, entry=self.search_entry: entry.configure(border_color=""))
         self.search_entry.bind('<KeyRelease>', lambda e: filter_search(tree))
         
